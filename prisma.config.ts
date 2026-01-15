@@ -4,21 +4,34 @@ import "dotenv/config";
 import { defineConfig } from "prisma/config";
 
 const schemaEnv = process.env.PRISMA_SCHEMA;
-const schema =
-  schemaEnv === "sensor"
-    ? "src/server/db/sensor/prisma/schema.prisma"
-    : schemaEnv && schemaEnv !== "auth"
-      ? schemaEnv
-      : "src/server/db/auth/prisma/schema.prisma";
 
-const isSensor = schema.includes("/sensor/");
-const migrationsPath = isSensor ? "src/server/db/sensor/prisma/migrations" : "src/server/db/auth/prisma/migrations";
-const datasourceUrl = isSensor
-  ? process.env.DATABASE_URL_SENSOR ?? "postgresql://user:pass@localhost:5432/sensor"
-  : process.env.DATABASE_URL ?? "postgresql://user:pass@localhost:5432/auth";
+let schema: string;
+let datasourceUrl: string;
+let migrationsPath: string;
+let seedCommand: string;
+
+switch (schemaEnv) {
+  case "exam":
+    schema = "src/server/db/exam/prisma/schema.prisma";
+    datasourceUrl =
+      process.env.DATABASE_URL_EXAM ??
+      "postgresql://user:pass@localhost:5432/exam";
+    migrationsPath = "src/server/db/exam/prisma/migrations";
+    seedCommand = "tsx src/server/db/exam/prisma/seed.ts";
+    break;
+
+  case "auth":
+  default:
+    schema = "src/server/db/auth/prisma/schema.prisma";
+    datasourceUrl =
+      process.env.DATABASE_URL ??
+      "postgresql://user:pass@localhost:5432/auth";
+    migrationsPath = "src/server/db/auth/prisma/migrations";
+    seedCommand = "tsx src/server/db/auth/prisma/seed.ts";
+}
 
 export default defineConfig({
   schema,
-  migrations: { path: migrationsPath },
   datasource: { url: datasourceUrl },
+  migrations: { path: migrationsPath, seed: seedCommand },
 });

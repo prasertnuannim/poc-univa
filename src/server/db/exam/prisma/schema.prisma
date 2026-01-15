@@ -1,0 +1,184 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "./generated/client"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+
+model Physician {
+  id        String   @id @default(uuid())
+  fullName  String   @unique
+  createdAt DateTime @default(now())
+
+  exams     Exam[]   @relation("PhysicianExam") //หมอ 1 คน → อ่านผล / รับผิดชอบ exam ได้หลายรายการ
+}
+
+model Operator {
+  id        String   @id @default(uuid())
+  fullName  String @unique
+  createdAt DateTime @default(now())
+
+  exams     Exam[] //Operator 1 คน → ทำ exam ได้หลายเคส
+}
+
+model Department {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+
+  devices   Device[] // 1 แผนก : หลายเครื่อง
+  exams     Exam[] // 1 แผนก : หลายการตรวจ
+}
+
+model Device {
+  id            String   @id @default(uuid())
+  name          String   @unique
+  model         String?
+  isActive      Boolean  @default(true)
+  departmentId  String // บังคับให้ เครื่องต้องอยู่ในแผนกเสมอ
+  createdAt     DateTime @default(now())
+
+  department    Department @relation(fields: [departmentId], references: [id]) // many Devices → one Department
+  exams         Exam[] //1 เครื่อง → ตรวจได้หลายเคส
+  maintenances  MaintenanceRecord[] // 1 Device มี MaintenanceRecord ได้หลายรายการ
+  deviceProbes  DeviceProbe[]  
+
+  @@index([departmentId])
+}
+
+model ExamType {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+
+  exams     Exam[] // 1 ExamType : หลาย Exam
+}
+
+// เป็นศูนย์กลางที่เชื่อม
+model Exam {
+  id            String   @id @default(uuid())
+
+  examTypeId    String
+  deviceId      String
+  probeId       String? 
+  departmentId String
+  operatorId    String?
+  physicianId   String?
+
+  startedAt     DateTime
+  finishedAt    DateTime?
+  status        ExamStatus @default(COMPLETED)
+
+  createdAt     DateTime @default(now())
+
+  examType      ExamType    @relation(fields: [examTypeId], references: [id])
+  device        Device      @relation(fields: [deviceId], references: [id])
+  probe         Probe?      @relation(fields: [probeId], references: [id])
+  department    Department  @relation(fields: [departmentId], references: [id])
+  operator      Operator?   @relation(fields: [operatorId], references: [id])
+  physician     Physician?  @relation("PhysicianExam", fields: [physicianId], references: [id])
+
+  @@index([startedAt])
+  @@index([deviceId])
+  @@index([probeId]) 
+  @@index([departmentId])
+  @@index([examTypeId])
+}
+
+model MaintenanceRecord {
+  id          String   @id @default(uuid())
+
+  deviceId    String
+  title       String
+  details     String?
+
+  type        MaintenanceType @default(PREVENTIVE)
+  status      MaintenanceStatus @default(COMPLETED)
+
+  startedAt   DateTime?
+  finishedAt  DateTime?
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  device      Device @relation(fields: [deviceId], references: [id]) //1 MaintenanceRecord ผูกกับ Device ได้แค่ 1 เครื่อง
+
+  @@index([deviceId])
+  @@index([type])
+  @@index([status])
+}
+
+model Probe {
+  id        String   @id @default(uuid())
+  name      String 
+  type      String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  deviceProbes DeviceProbe[] // many-to-many
+  exams        Exam[]  // probe 1 อันถูกใช้ในหลาย exam
+}
+
+// Join Table
+// 1 เครื่องมีหลาย probe
+// probe 1 อันย้ายไปใช้หลายเครื่องได้
+
+model DeviceProbe {
+  deviceId String
+  probeId  String
+
+  assignedAt DateTime @default(now())
+  isActive   Boolean  @default(true)
+
+  device Device @relation(fields: [deviceId], references: [id])
+  probe  Probe  @relation(fields: [probeId], references: [id])
+
+  @@id([deviceId, probeId])
+  @@index([deviceId])
+  @@index([probeId])
+}
+
+model ExamDailySummary {
+  id            String   @id @default(uuid())
+  date          DateTime @db.Date
+  examTypeId    String?
+  departmentId  String?
+  total         Int
+
+  @@unique([date, examTypeId, departmentId])
+}
+
+model ExamMonthlySummary {
+  id            String   @id @default(uuid())
+  year          Int
+  month         Int
+  examTypeId    String?
+  departmentId  String?
+  total         Int
+
+  @@unique([year, month, examTypeId, departmentId])
+}
+
+enum MaintenanceType {
+  PREVENTIVE
+  CORRECTIVE
+  CALIBRATION
+  INSPECTION
+}
+
+enum MaintenanceStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum ExamStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}

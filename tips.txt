@@ -5,3 +5,11 @@ npx prisma generate --schema=src/server/db/sensor/prisma/schema.prisma
 npx prisma generate --schema=src/server/db/sensor/prisma/schema.prisma
 
 npx prisma studio
+
+auth : npx prisma migrate dev      
+
+// create exam generate
+npx prisma generate --schema src/server/db/exam/prisma/schema.prisma
+npm run prisma:exam:migrate
+
+npm run prisma:auth:studio
