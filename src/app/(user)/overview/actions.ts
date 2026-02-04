@@ -1,199 +1,82 @@
-import { examPrisma } from "@/server/db/exam/client";
-import { Prisma } from "@/server/db/exam/prisma/generated/client";
+"use server";
+
+import { RateLimiter } from "@/server/security/rateLimiter";
+import { isAppError } from "@/server/security/appError";
+import { OVERVIEW_RATE_LIMIT } from "@/server/constants/dashboard";
+import { overviewSchema, type OverviewInput } from "@/server/schemas/overview.schema";
+import { buildFilterFromInput, fetchOverviewRaw } from "@/server/services/overviewService";
+import { overviewRateLimitKey } from "@/server/security/dashboardPolicy";
+import { toDashboardOverviewDTOOrNull } from "@/server/mappers/overview.mapper";
+import type { DashboardOverviewDTO } from "@/server/dto/overview.dto";
 
 
-/* =====================================================
- * Constants
- * ===================================================== */
+// import { getServerAuthSession } from "@/server/services/auth/sessionService"; // ถ้ามี
 
-const GRANULARITY_MAP: Record<TimeGranularity, string> = {
-  hour: "hour",
-  day: "day",
-  week: "week",
-  month: "month",
+export type DashboardOverviewState = {
+  data: DashboardOverviewDTO | null;
+  volumeSeries: { label: string; value: number }[];
+  typeDonut: { name: string; value: number }[];
+  perUnit: { unit: string; value: number }[];
+  maintenanceRows: { date: string; device: string; details: string }[];
+  loaded: boolean;
+  errors?: Record<string, string>;
+  values?: OverviewInput;
+  error?: string | null;
 };
 
-/* =====================================================
- * Types
- * ===================================================== */
+const limiter = RateLimiter(OVERVIEW_RATE_LIMIT.max, OVERVIEW_RATE_LIMIT.windowSec);
 
-export type DateFilter =
-  | { mode: "day"; date: Date }
-  | { mode: "week"; date: Date }
-  | { mode: "month"; date: Date }
-  | { mode: "year"; date: Date }
-  | { mode: "custom"; start: Date; end: Date };
+export async function loadDashboardOverview(
+  _prev: unknown,
+  formData: FormData
+): Promise<DashboardOverviewState> {
+  const rawMode = (formData.get("mode") ?? "today") as string;
+  const normalizedMode =
+    rawMode === "day" ? "today" : rawMode === "range" ? "custom" : rawMode;
 
-export type TimeGranularity = "hour" | "day" | "week" | "month";
+  const raw: OverviewInput = {
+    mode: normalizedMode as OverviewInput["mode"],
+    date: formData.get("date") ? String(formData.get("date")) : undefined,
+    start: formData.get("start") ? String(formData.get("start")) : undefined,
+    end: formData.get("end") ? String(formData.get("end")) : undefined,
+    granularity: (formData.get("granularity") ?? "day") as OverviewInput["granularity"],
+  };
 
-/* =====================================================
- * Utils: Resolve date range
- * ===================================================== */
+  try {
+    const parsed = overviewSchema.safeParse(raw);
+    if (!parsed.success) {
+      const errors: Record<string, string> = {};
+      parsed.error.errors.forEach((e) => (errors[String(e.path[0] ?? "general")] = e.message));
+      return { data: null, volumeSeries: [], typeDonut: [], perUnit: [], maintenanceRows: [], loaded: false, errors, values: raw, error: null };
+    }
 
-function resolveDateRange(filter: DateFilter) {
-  let start: Date;
-  let end: Date;
+    // const session = await getServerAuthSession();
+    // await limiter.check(overviewRateLimitKey(session?.user?.id));
+    await limiter.check(overviewRateLimitKey(null));
 
-  switch (filter.mode) {
-    case "day":
-      start = new Date(filter.date);
-      start.setHours(0, 0, 0, 0);
-      end = new Date(start);
-      end.setDate(end.getDate() + 1);
-      break;
+    const filter = buildFilterFromInput(parsed.data);
+    const rawData = await fetchOverviewRaw({
+      filter,
+      granularity: parsed.data.granularity,
+      maintenanceLimit: 5,
+    });
 
-    case "week":
-      start = new Date(filter.date);
-      start.setDate(start.getDate() - start.getDay());
-      start.setHours(0, 0, 0, 0);
-      end = new Date(start);
-      end.setDate(end.getDate() + 7);
-      break;
+    const dto = toDashboardOverviewDTOOrNull(rawData);
+    const safeDto = dto ?? {
+      volumeSeries: [],
+      typeDonut: [],
+      perUnit: [],
+      maintenanceRows: [],
+    };
 
-    case "month":
-      start = new Date(filter.date);
-      start.setDate(1);
-      start.setHours(0, 0, 0, 0);
-      end = new Date(start);
-      end.setMonth(end.getMonth() + 1);
-      break;
-
-    case "year":
-      start = new Date(filter.date);
-      start.setMonth(0, 1);
-      start.setHours(0, 0, 0, 0);
-      end = new Date(start);
-      end.setFullYear(end.getFullYear() + 1);
-      break;
-
-    case "custom":
-      start = filter.start;
-      end = filter.end;
-      break;
+    return { data: dto, ...safeDto, loaded: true, errors: {}, values: raw, error: null };
+  } catch (err) {
+    if (err instanceof Error && err.message === "Too many requests") {
+      return { data: null, volumeSeries: [], typeDonut: [], perUnit: [], maintenanceRows: [], loaded: false, errors: { general: "Too many requests. Please try again later." }, values: raw, error: null };
+    }
+    if (isAppError(err)) {
+      return { data: null, volumeSeries: [], typeDonut: [], perUnit: [], maintenanceRows: [], loaded: false, errors: { general: err.message }, values: raw, error: err.message };
+    }
+    return { data: null, volumeSeries: [], typeDonut: [], perUnit: [], maintenanceRows: [], loaded: false, errors: { general: "Failed to load overview." }, values: raw, error: "Failed to load overview." };
   }
-
-  return { start, end };
-}
-
-/* =====================================================
- * 1) Exam Volume by Time (Line / Bar)
- * ===================================================== */
-
-export type ExamVolumeTimeRow = {
-  period: string;
-  total: number;
-};
-
-export async function getExamVolumeByTime(
-  filter: DateFilter,
-  granularity: TimeGranularity
-): Promise<{ data: ExamVolumeTimeRow[] }> {
-  const { start, end } = resolveDateRange(filter);
-
-  const trunc = Prisma.raw(
-    `date_trunc('${GRANULARITY_MAP[granularity]}', "startedAt")`
-  );
-
-  const data = await examPrisma.$queryRaw<ExamVolumeTimeRow[]>`
-    SELECT
-      ${trunc} AS period,
-      COUNT(*)::int AS total
-    FROM "Exam"
-    WHERE
-      "startedAt" >= ${start}
-      AND "startedAt" < ${end}
-    GROUP BY period
-    ORDER BY period ASC
-  `;
-
-  return { data };
-}
-
-/* =====================================================
- * 2) Exam Volume by Type (Donut Chart)
- * ===================================================== */
-
-export type ExamTypeDonutRow = {
-  label: string;
-  total: number;
-};
-
-export async function getExamVolumeByType(
-  filter: DateFilter
-): Promise<{ data: ExamTypeDonutRow[] }> {
-  const { start, end } = resolveDateRange(filter);
-
-  const data = await examPrisma.$queryRaw<ExamTypeDonutRow[]>`
-    SELECT
-      et.name AS label,
-      COUNT(e.id)::int AS total
-    FROM "Exam" e
-    JOIN "ExamType" et ON et.id = e."examTypeId"
-    WHERE
-      e."startedAt" >= ${start}
-      AND e."startedAt" < ${end}
-    GROUP BY et.name
-    ORDER BY total DESC
-  `;
-
-  return { data };
-}
-
-/* =====================================================
- * 3) Exam Volume per Department (Bar Chart)
- * ===================================================== */
-
-export type ExamVolumeDepartmentRow = {
-  department: string;
-  total: number;
-};
-
-export async function getExamVolumePerDepartment(
-  filter: DateFilter
-): Promise<{ data: ExamVolumeDepartmentRow[] }> {
-  const { start, end } = resolveDateRange(filter);
-
-  const data = await examPrisma.$queryRaw<ExamVolumeDepartmentRow[]>`
-    SELECT
-      d.name AS department,
-      COUNT(e.id)::int AS total
-    FROM "Exam" e
-    JOIN "Department" d ON d.id = e."departmentId"
-    WHERE
-      e."startedAt" >= ${start}
-      AND e."startedAt" < ${end}
-    GROUP BY d.name
-    ORDER BY total DESC
-  `;
-
-  return { data };
-}
-
-/* =====================================================
- * 4) Recent Maintenance Records
- * ===================================================== */
-
-export type RecentMaintenanceRow = {
-  id: string;
-  date: Date;
-  device: string;
-  details: string;
-};
-
-export async function getRecentMaintenanceRecordsRaw(
-  limit: number = 5
-): Promise<{ data: RecentMaintenanceRow[] }> {
-  const data = await examPrisma.$queryRaw<RecentMaintenanceRow[]>`
-    SELECT
-      m.id,
-      m."createdAt" AS date,
-      d.name AS device,
-      COALESCE(m.details, m.title) AS details
-    FROM "MaintenanceRecord" m
-    JOIN "Device" d ON d.id = m."deviceId"
-    ORDER BY m."createdAt" DESC
-    LIMIT ${limit}
-  `;
-
-  return { data };
 }

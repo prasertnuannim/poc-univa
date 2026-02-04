@@ -1,4 +1,4 @@
-import { prisma } from "../client";
+import { examPrisma as prisma } from "../client";
 import type { Prisma } from "./generated/client";
 
 /* =====================================================
@@ -17,17 +17,23 @@ function addMinutes(date: Date, min: number) {
   return new Date(date.getTime() + min * 60000);
 }
 
+function isWeekend(date: Date) {
+  const d = date.getDay();
+  return d === 0 || d === 6;
+}
+
 /* =====================================================
  * Seed
  * ===================================================== */
 
 async function main() {
-  console.log("🌱 Start seeding 1 month data...");
+  console.log("🌱 Start heavy seeding (±3 months)...");
 
   /* -------------------------
-   * Departments
+   * Master data (เหมือนเดิม)
    * ------------------------- */
-  const departments = await prisma.department.createMany({
+
+  await prisma.department.createMany({
     data: [
       { name: "Radiology" },
       { name: "OB-GYN" },
@@ -36,45 +42,33 @@ async function main() {
     skipDuplicates: true,
   });
 
-  const departmentList = await prisma.department.findMany();
+  const departments = await prisma.department.findMany();
 
-  /* -------------------------
-   * Exam Types
-   * ------------------------- */
   await prisma.examType.createMany({
     data: [
       { name: "Abdomen" },
       { name: "Fetal" },
       { name: "Heart" },
+      { name: "Vascular" },
     ],
     skipDuplicates: true,
   });
 
   const examTypes = await prisma.examType.findMany();
 
-  /* -------------------------
-   * Operators
-   * ------------------------- */
   await prisma.operator.createMany({
-    data: [
-      { fullName: "Operator A" },
-      { fullName: "Operator B" },
-      { fullName: "Operator C" },
-    ],
+    data: Array.from({ length: 10 }).map((_, i) => ({
+      fullName: `Operator ${i + 1}`,
+    })),
     skipDuplicates: true,
   });
 
   const operators = await prisma.operator.findMany();
 
-  /* -------------------------
-   * Physicians
-   * ------------------------- */
   await prisma.physician.createMany({
-    data: [
-      { fullName: "Dr. Smith" },
-      { fullName: "Dr. Jane" },
-      { fullName: "Dr. John" },
-    ],
+    data: Array.from({ length: 8 }).map((_, i) => ({
+      fullName: `Dr. ${String.fromCharCode(65 + i)}`,
+    })),
     skipDuplicates: true,
   });
 
@@ -83,12 +77,14 @@ async function main() {
   /* -------------------------
    * Devices
    * ------------------------- */
+
   const devices: Prisma.DeviceCreateManyInput[] = [];
-  for (const dept of departmentList) {
-    for (let i = 1; i <= 2; i++) {
+
+  for (const dept of departments) {
+    for (let i = 1; i <= 4; i++) {
       devices.push({
         name: `${dept.name}-US-${i}`,
-        model: "Ultrasound X",
+        model: "Ultrasound X-Pro",
         departmentId: dept.id,
       });
     }
@@ -104,11 +100,13 @@ async function main() {
   /* -------------------------
    * Probes
    * ------------------------- */
+
   await prisma.probe.createMany({
     data: [
       { name: "Linear", type: "Linear" },
       { name: "Convex", type: "Convex" },
       { name: "Phased", type: "Phased" },
+      { name: "Endocavity", type: "Endocavity" },
     ],
     skipDuplicates: true,
   });
@@ -118,8 +116,9 @@ async function main() {
   /* -------------------------
    * Device ↔ Probe
    * ------------------------- */
+
   for (const device of deviceList) {
-    const probeCount = randomInt(1, probes.length);
+    const probeCount = randomInt(2, probes.length);
     const assigned = probes.slice(0, probeCount);
 
     for (const probe of assigned) {
@@ -140,16 +139,25 @@ async function main() {
   }
 
   /* -------------------------
-   * Exams (ย้อนหลัง 30 วัน)
+   * Exams (HEAVY DATA)
    * ------------------------- */
+
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  for (let d = 0; d < 30; d++) {
-    const date = new Date(today);
-    date.setDate(today.getDate() - d);
+  const DAYS_RANGE = 90; // ±3 เดือน
+  const examsBuffer: Prisma.ExamCreateManyInput[] = [];
 
-    const examsPerDay = randomInt(5, 15);
+  for (let offset = -DAYS_RANGE; offset <= DAYS_RANGE; offset++) {
+    const date = new Date(today);
+    date.setDate(today.getDate() + offset);
+
+    const future = date > today;
+    const weekend = isWeekend(date);
+
+    const examsPerDay = weekend
+      ? randomInt(5, 15)
+      : randomInt(30, 80);
 
     for (let i = 0; i < examsPerDay; i++) {
       const device = randomFrom(deviceList);
@@ -158,26 +166,35 @@ async function main() {
       const physician = randomFrom(physicians);
       const probe = randomFrom(probes);
 
-      const start = addMinutes(date, randomInt(8 * 60, 17 * 60));
-      const finish = addMinutes(start, randomInt(10, 40));
+      const start = addMinutes(
+        date,
+        randomInt(8 * 60, 18 * 60) // 08:00–18:00
+      );
 
-      await prisma.exam.create({
-        data: {
-          examTypeId: examType.id,
-          deviceId: device.id,
-          departmentId: device.departmentId,
-          probeId: probe.id,
-          operatorId: operator.id,
-          physicianId: physician.id,
-          startedAt: start,
-          finishedAt: finish,
-          status: "COMPLETED",
-        },
+      const duration = randomInt(10, 60);
+      const finish = addMinutes(start, duration);
+
+      examsBuffer.push({
+        examTypeId: examType.id,
+        deviceId: device.id,
+        departmentId: device.departmentId,
+        probeId: probe.id,
+        operatorId: operator.id,
+        physicianId: physician.id,
+        startedAt: start,
+        finishedAt: future ? null : finish,
+        status: future ? "SCHEDULED" : "COMPLETED",
       });
     }
   }
 
-  console.log("✅ Seed completed (1 month data)");
+  console.log(`🧪 Creating ${examsBuffer.length} exams...`);
+
+  await prisma.exam.createMany({
+    data: examsBuffer,
+  });
+
+  console.log("✅ Heavy seed completed (±3 months)");
 }
 
 /* =====================================================
@@ -186,7 +203,7 @@ async function main() {
 
 main()
   .catch((e) => {
-    console.error(e);
+    console.error("❌ Seed failed", e);
     process.exit(1);
   })
   .finally(async () => {

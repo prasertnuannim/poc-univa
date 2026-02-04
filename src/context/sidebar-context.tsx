@@ -13,17 +13,16 @@ const SidebarContext = createContext<SidebarContextType | null>(null);
 export function SidebarProvider({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(true);
 
-  // ✅ auto collapse when < md
+  // ✅ auto collapse when < lg
   useEffect(() => {
-    const media = window.matchMedia("(min-width: 768px)");
+    const media = window.matchMedia("(min-width: 1024px)");
 
     const handleChange = () => {
-      setOpen(media.matches); // md+ = open, <md = collapsed
+      setOpen(media.matches); // lg+ = open, <lg = collapsed
     };
 
     handleChange();
     media.addEventListener("change", handleChange);
-
     return () => media.removeEventListener("change", handleChange);
   }, []);
 

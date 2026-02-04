@@ -12,7 +12,6 @@ const COOKIE_CANDIDATES = [
 async function readToken(req: NextRequest, secret: string) {
   let token = await getToken({ req, secret });
   if (token) return token;
-console.log("token>> ", token)
   for (const cookieName of COOKIE_CANDIDATES) {
     token = await getToken({
       req,

@@ -1,6 +1,7 @@
 import { getServerAuthSession } from "@/server/services/auth/sessionService";
 import UserProviders from "./providers";
-import UserShell from "./user-shell";
+import ToggleButton from "@/components/ui/toggle-button";
+import Sidebar from "./sidebar";
 
 export default async function UserLayout({
   children,
@@ -17,12 +18,11 @@ export default async function UserLayout({
         image: session.user.image ?? null,
       }
     : null;
-
   return (
     <UserProviders>
-      <UserShell profile={profile}>
+      <ToggleButton sidebar={<Sidebar profile={profile} />}>
         {children}
-      </UserShell>
+      </ToggleButton>
     </UserProviders>
   );
 }

@@ -13,3 +13,6 @@ npx prisma generate --schema src/server/db/exam/prisma/schema.prisma
 npm run prisma:exam:migrate
 
 npm run prisma:auth:studio
+
+
+npx shadcn@latest add dropdown-menu
