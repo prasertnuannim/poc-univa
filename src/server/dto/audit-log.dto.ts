@@ -1,10 +1,10 @@
-type AuditFieldChange = {
+export type AuditFieldChange = {
   field: string;
   before?: string | number | boolean | null;
   after?: string | number | boolean | null;
 };
 
-type AuditLogDetailView = {
+export type AuditLogDetailView = {
   id: string;
   createdAt: Date;
   actor: string;

@@ -132,7 +132,7 @@ export default function ScrollBarBarChart({
       {/* ✅ Outer: fix ตามกล่อง + scrollbar */}
       <div ref={ref} className="w-full overflow-x-auto px-4 pb-4">
         {/* ✅ Inner: ความกว้างจริงของกราฟ (ทำให้ล้นแล้วเลื่อนได้) */}
-        <div style={{ width: innerWidth }} className="h-[260px]">
+        <div style={{ width: innerWidth, height }}>
           <Bar data={data} options={options} style={{ display: "block" }} />
         </div>
       </div>

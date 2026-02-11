@@ -27,7 +27,7 @@ type RightDrawerProps = {
 };
 
 export default function RightPanel(props: RightDrawerProps) {
-  const { open, title, onClose, tabs, activeTab, onTabChange, summary, chart } =
+  const { open, title, onClose, tabs, activeTab, onTabChange, chart } =
     props;
 
   // ✅ แบ่งครึ่ง: ถ้าไม่เปิดก็ไม่ต้องแสดงฝั่งขวา

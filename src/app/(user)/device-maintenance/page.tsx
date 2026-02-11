@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { MoreVertical } from "lucide-react";
 import FilterPanel from "@/components/device-maintenance/filterPanel";
 import Pagination from "@/components/device-maintenance/paginationBar";
@@ -178,10 +178,6 @@ export default function DeviceMaintenancePage() {
   const [filter, setFilter] = useState({ q: "" });
   const [page, setPage] = useState(1);
 
-  useEffect(() => {
-    setPage(1);
-  }, [filter.q]);
-
   const filteredRows = useMemo(() => {
     const q = filter.q.toLowerCase();
 
@@ -223,11 +219,10 @@ export default function DeviceMaintenancePage() {
       {/* ✅ ใช้ FilterPanel ของคุณตรง ๆ */}
       <FilterPanel
         search={filter.q}
-        onSearchChange={(q) =>
-          setFilter((prev) => ({ ...prev, q }))
-        }
-        dateLabel="TODAY · Nov 25, 2025"
-        onDateClick={() => {}}
+        onSearchChange={(q) => {
+          setFilter((prev) => ({ ...prev, q }));
+          setPage(1);
+        }}
         onFilterClick={() => {}}
         onCustomizeClick={() => {}}
         onExportClick={() =>

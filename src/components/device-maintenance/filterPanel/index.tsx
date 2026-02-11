@@ -11,9 +11,6 @@ type TableToolbarProps = {
   search?: string;
   onSearchChange?: (v: string) => void;
 
-  dateLabel?: string;
-  onDateClick?: () => void;
-
   onFilterClick?: () => void;
   onCustomizeClick?: () => void;
   onExportClick?: () => void;
@@ -22,8 +19,6 @@ type TableToolbarProps = {
 export default function FilterPanel({
   search,
   onSearchChange,
-  dateLabel = "TODAY · Nov 25, 2025",
-  onDateClick,
   onFilterClick,
   onCustomizeClick,
   onExportClick,

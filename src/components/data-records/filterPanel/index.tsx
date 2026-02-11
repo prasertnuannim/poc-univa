@@ -63,9 +63,15 @@ export default function FilterPanel({
 
       {/* Date select */}
       <FilterSelect
-        label="TODAY · Nov 25, 2025"
-        onSelectPreset={(p) => console.log("preset:", p)}
-        onApplyRange={(from, to) => console.log("range:", from, to)}
+        label={dateLabel}
+        onSelectPreset={(p) => {
+          onDateClick?.();
+          console.log("preset:", p);
+        }}
+        onApplyRange={(from, to) => {
+          onDateClick?.();
+          console.log("range:", from, to);
+        }}
       />
 
       {/* Filter */}

@@ -1,7 +1,6 @@
 "use client";
 import FilterPanel from "@/components/data-records/filterPanel";
 import Pagination from "@/components/data-records/paginationBar";
-import { Filter } from "lucide-react";
 import * as React from "react";
 
 type FilterState = {
@@ -177,16 +176,16 @@ export default function Page() {
               </tr>
             </thead>
             <tbody>
-              {filteredRows.map((r, idx) => (
+              {pagedRows.map((r, idx) => (
                 <tr key={idx} className="text-sm text-gray-800 hover:bg-gray-50">
                   {visibleCols.map((c) => (
                     <td key={c.key} className="border-b border-gray-100 px-3 py-2">
-                      {(r as any)[c.key]}
+                      {String(r[c.key])}
                     </td>
                   ))}
                 </tr>
               ))}
-              {filteredRows.length === 0 && (
+              {pagedRows.length === 0 && (
                 <tr>
                   <td
                     colSpan={visibleCols.length}
