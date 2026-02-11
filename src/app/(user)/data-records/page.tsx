@@ -57,11 +57,12 @@ const allColumns = [
   { key: "duration", label: "Duration" },
 ] as const;
 
+type Column = (typeof allColumns)[number];
 type ColumnKey = (typeof allColumns)[number]["key"];
 
 const PAGE_SIZE = 10;
 
-function exportToCsv(rows: Row[], columns: typeof allColumns) {
+function exportToCsv(rows: Row[], columns: readonly Column[]) {
   const header = columns.map((c) => c.label).join(",");
   const lines = rows.map((r) =>
     columns

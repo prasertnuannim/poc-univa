@@ -1,27 +1,57 @@
 import { examPrisma } from "@/server/db/exam/client";
-import { Prisma } from "@/server/db/exam/prisma/generated/client";
 import { GRANULARITY_MAP, type TimeGranularity } from "@/server/constants/dashboard";
 
-const TZ = "Asia/Bangkok";
+const STEP_MAP: Record<TimeGranularity, string> = {
+  hour: "1 hour",
+  day: "1 day",
+  week: "1 week",
+  month: "1 month",
+};
+
+const LABEL_FORMAT_MAP: Record<TimeGranularity, string> = {
+  hour: "HH24:00",
+  day: "DD Mon",
+  week: '"W"IW YYYY',
+  month: "Mon YYYY",
+};
 
 export async function getVolumeByTime(
   start: Date,
   end: Date,
   granularity: TimeGranularity
 ) {
-  const g = GRANULARITY_MAP[granularity]; // must be whitelist เช่น 'hour' | 'day' | ...
-  const periodExpr = Prisma.raw(
-    `date_trunc('${g}', "startedAt" AT TIME ZONE '${TZ}')`
-  );
-console.log("start>>",start , "  ", "end>>", end, " granularity>>", granularity);
-  return examPrisma.$queryRaw<{ period: Date; total: number }[]>`
-    SELECT ${periodExpr} AS period, COUNT(*)::int AS total
-    FROM "Exam"
-    WHERE "startedAt" >= ${start} AND "startedAt" < ${end}
-    GROUP BY period
-    ORDER BY period ASC
+  const trunc = GRANULARITY_MAP[granularity];
+  const step = STEP_MAP[granularity];
+  const labelFormat = LABEL_FORMAT_MAP[granularity];
+
+  return examPrisma.$queryRaw<
+    { label: string; total: number }[]
+  >`
+    WITH bounds AS (
+      SELECT
+        date_trunc(${trunc}, ${start}::timestamp) AS start_period,
+        date_trunc(${trunc}, ${end}::timestamp)   AS end_period
+    ),
+    series AS (
+      SELECT generate_series(
+        b.start_period,
+        b.end_period - ${step}::interval,
+        ${step}::interval
+      ) AS period
+      FROM bounds b
+    )
+    SELECT
+      to_char(s.period, ${labelFormat}) AS label,
+      COUNT(e.id)::int AS total
+    FROM series s
+    LEFT JOIN "Exam" e
+      ON e."startedAt" >= s.period
+     AND e."startedAt" <  s.period + ${step}::interval
+    GROUP BY s.period
+    ORDER BY s.period ASC;
   `;
 }
+
 
 export async function getVolumeByType(start: Date, end: Date) {
   return examPrisma.$queryRaw<{ label: string; total: number }[]>`

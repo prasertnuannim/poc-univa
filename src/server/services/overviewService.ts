@@ -1,4 +1,5 @@
 import type { OverviewQuery, DateFilter, OverviewRaw } from "@/server/domain/dashboard/overview";
+import type { TimeGranularity } from "@/server/constants/dashboard";
 import * as repo from "@/server/query/overviewRepo";
 import { createAppError } from "@/server/security/appError";
 
@@ -50,12 +51,18 @@ function resolveDateRange(filter: DateFilter) {
   return { start, end };
 }
 
+function resolveGranularityFromFilter(_filter: DateFilter): TimeGranularity {
+  return "hour";
+}
+
 export async function fetchOverviewRaw(query: OverviewQuery): Promise<OverviewRaw> {
   const { start, end } = resolveDateRange(query.filter);
   console.log(" start, end>> ",  start, end)
+  console.log("query>>",query)
+  const granularity = resolveGranularityFromFilter(query.filter);
 
   const [volume, types, departments, maintenance] = await Promise.all([
-    repo.getVolumeByTime(start, end, query.granularity),
+    repo.getVolumeByTime(start, end, granularity),
     repo.getVolumeByType(start, end),
     repo.getVolumeByDepartment(start, end),
     repo.getRecentMaintenance(query.maintenanceLimit),

@@ -7,115 +7,79 @@ datasource db {
   provider = "postgresql"
 }
 
-/* =====================================================
- * Master / Actor Tables
- * ===================================================== */
-
-/**
- * Physician (แพทย์)
- * - แพทย์ 1 คน สามารถอ่านผล / รับผิดชอบ exam ได้หลายรายการ
- */
 model Physician {
-  id        String   @id @default(uuid())
-  fullName  String   @unique        // ชื่อ-นามสกุลแพทย์ (ไม่ซ้ำ)
+  id        String   @id @default(uuid())  @db.Uuid
+  fullName  String   @unique @db.VarChar(255)
   createdAt DateTime @default(now())
 
-  exams     Exam[]   @relation("PhysicianExam")
+  exams Exam[] @relation("PhysicianExam") //หมอ 1 คน → อ่านผล / รับผิดชอบ exam ได้หลายรายการ
 }
 
-/**
- * Operator (เจ้าหน้าที่ตรวจ)
- * - Operator 1 คน สามารถทำ exam ได้หลายเคส
- */
 model Operator {
-  id        String   @id @default(uuid())
-  fullName  String   @unique
+  id        String   @id @default(uuid()) @db.Uuid
+  fullName  String   @unique @db.VarChar(255)
   createdAt DateTime @default(now())
 
-  exams     Exam[]
+  exams Exam[] //Operator 1 คน → ทำ exam ได้หลายเคส
 }
 
-/**
- * Department (แผนก)
- * - 1 แผนก มีหลายเครื่อง
- * - 1 แผนก มีหลายการตรวจ
- */
 model Department {
-  id        String   @id @default(uuid())
-  name      String   @unique        // ชื่อแผนก
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String   @unique @db.VarChar(255)
   createdAt DateTime @default(now())
 
-  devices   Device[]
-  exams     Exam[]
+  devices Device[] // 1 แผนก : หลายเครื่อง
+  exams   Exam[] // 1 แผนก : หลายการตรวจ
 }
 
-/**
- * Device (เครื่องตรวจ)
- * - เครื่องต้องสังกัดแผนกเสมอ
- * - 1 เครื่อง ตรวจได้หลายเคส
- * - 1 เครื่อง มี maintenance หลายรายการ
- */
 model Device {
-  id            String   @id @default(uuid())
-  name          String   @unique        // ชื่อเครื่อง
-  model         String?
-  isActive      Boolean  @default(true)
-  departmentId  String                  // FK → Department
-  createdAt     DateTime @default(now())
+  id           String   @id @default(uuid()) @db.Uuid
+  name         String   @unique @db.VarChar(255)
+  model        String? @db.VarChar(255)
+  isActive     Boolean  @default(true)
+  departmentId String @db.Uuid // บังคับให้ เครื่องต้องอยู่ในแผนกเสมอ
+  createdAt    DateTime @default(now())
 
-  department    Department @relation(fields: [departmentId], references: [id])
-  exams         Exam[]
-  maintenances  MaintenanceRecord[]
-  deviceProbes  DeviceProbe[]
+  department   Department          @relation(fields: [departmentId], references: [id]) // many Devices → one Department
+  exams        Exam[] //1 เครื่อง → ตรวจได้หลายเคส
+  maintenances MaintenanceRecord[] // 1 Device มี MaintenanceRecord ได้หลายรายการ
+  deviceProbes DeviceProbe[]
 
   @@index([departmentId])
 }
 
-/**
- * ExamType (ประเภทการตรวจ)
- * เช่น Abdomen, Cardiac, OB/GYN
- */
 model ExamType {
-  id        String   @id @default(uuid())
-  name      String   @unique
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String   @unique @db.VarChar(255)
   createdAt DateTime @default(now())
 
-  exams     Exam[]
+  exams Exam[] // 1 ExamType : หลาย Exam
 }
 
-/* =====================================================
- * Core Transaction Table
- * ===================================================== */
-
-/**
- * Exam (รายการตรวจ)
- * 👉 ศูนย์กลางของระบบ
- * เชื่อม ExamType, Device, Probe, Department, Operator, Physician
- */
+// เป็นศูนย์กลางที่เชื่อม
 model Exam {
-  id            String   @id @default(uuid())
+  id String @id @default(uuid()) @db.Uuid
 
-  examTypeId    String               // ประเภทการตรวจ
-  deviceId      String               // เครื่องที่ใช้
-  probeId       String?              // probe ที่ใช้ (บาง exam อาจไม่มี)
-  departmentId  String               // แผนก
-  operatorId    String?              // ผู้ทำการตรวจ
-  physicianId   String?              // แพทย์อ่านผล
-
-  startedAt     DateTime             // เวลาเริ่มตรวจ
-  finishedAt    DateTime?            // เวลาสิ้นสุด
-  status        ExamStatus @default(COMPLETED)
-  createdAt     DateTime @default(now())
+  examTypeId   String @db.Uuid
+  deviceId     String @db.Uuid
+  probeId      String? @db.Uuid
+  departmentId String @db.Uuid
+  operatorId   String? @db.Uuid
+  physicianId  String? @db.Uuid
+  startedAt    DateTime
+  finishedAt   DateTime?
+  status       ExamStatus @default(COMPLETED)
+  createdAt    DateTime   @default(now())
 
   // relations
-  examType      ExamType    @relation(fields: [examTypeId], references: [id])
-  device        Device      @relation(fields: [deviceId], references: [id])
-  probe         Probe?      @relation(fields: [probeId], references: [id])
-  department    Department @relation(fields: [departmentId], references: [id])
-  operator      Operator?  @relation(fields: [operatorId], references: [id])
-  physician     Physician? @relation("PhysicianExam", fields: [physicianId], references: [id])
+  examType   ExamType   @relation(fields: [examTypeId], references: [id])
+  device     Device     @relation(fields: [deviceId], references: [id])
+  probe      Probe?     @relation(fields: [probeId], references: [id])
+  department Department @relation(fields: [departmentId], references: [id])
+  operator   Operator?  @relation(fields: [operatorId], references: [id])
+  physician  Physician? @relation("PhysicianExam", fields: [physicianId], references: [id])
 
-  // indexes สำหรับ analytics / dashboard
+  // composite indexes index ที่มี มากกว่า 1 คอลัมน์ใช้query กรองหลายเงื่อนไขพร้อมกัน
   @@index([deviceId, startedAt], map: "exam_device_startedat_idx")
   @@index([probeId, startedAt], map: "exam_probe_startedat_idx")
   @@index([departmentId, startedAt], map: "exam_department_startedat_idx")
@@ -125,60 +89,43 @@ model Exam {
   @@index([startedAt], map: "exam_startedat_idx")
 }
 
-/* =====================================================
- * Maintenance
- * ===================================================== */
-
-/**
- * MaintenanceRecord
- * - ประวัติการซ่อม / บำรุงรักษาเครื่อง
- */
 model MaintenanceRecord {
-  id          String   @id @default(uuid())
-  deviceId    String
-  title       String
-  details     String?
-  type        MaintenanceType   // PREVENTIVE / CORRECTIVE
-  status      MaintenanceStatus // SCHEDULED / COMPLETED
-  startedAt   DateTime?
-  finishedAt  DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id         String @id @default(uuid()) @db.Uuid
+  deviceId   String @db.Uuid
+  title      String @db.VarChar(255)
+  details    String? @db.VarChar(255)
+  type       MaintenanceType   @default(PREVENTIVE)
+  status     MaintenanceStatus @default(COMPLETED)
+  startedAt  DateTime?
+  finishedAt DateTime?
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
 
-  device      Device @relation(fields: [deviceId], references: [id])
+  device Device @relation(fields: [deviceId], references: [id]) //1 MaintenanceRecord ผูกกับ Device ได้แค่ 1 เครื่อง
 
   @@index([deviceId])
   @@index([type])
   @@index([status])
 }
 
-/* =====================================================
- * Probe & Device Mapping
- * ===================================================== */
-
-/**
- * Probe (หัวตรวจ)
- * - probe 1 อัน ใช้กับหลาย exam
- * - probe 1 อัน สามารถสลับไปหลายเครื่องได้
- */
 model Probe {
-  id        String   @id @default(uuid())
-  name      String
-  type      String?
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String @db.VarChar(255)
+  type      String? @db.VarChar(255)
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
 
-  deviceProbes DeviceProbe[]
-  exams        Exam[]
+  deviceProbes DeviceProbe[] // many-to-many
+  exams        Exam[] // probe 1 อันถูกใช้ในหลาย exam
 }
 
-/**
- * DeviceProbe (Join Table)
- * - many-to-many ระหว่าง Device ↔ Probe
- */
+// Join Table
+// 1 เครื่องมีหลาย probe
+// probe 1 อันย้ายไปใช้หลายเครื่องได้
+
 model DeviceProbe {
-  deviceId String
-  probeId  String
+  deviceId String @db.Uuid
+  probeId  String @db.Uuid
 
   assignedAt DateTime @default(now())
   isActive   Boolean  @default(true)
@@ -191,134 +138,96 @@ model DeviceProbe {
   @@index([probeId])
 }
 
-/* =====================================================
- * Summary / Cache Tables (สำหรับ Dashboard)
- * ===================================================== */
-
-/**
- * ExamDailySummary
- * - สรุปจำนวน exam ต่อวัน
- * - optional group by examType / department
- */
 model ExamDailySummary {
-  id            String   @id @default(uuid())
-  date          DateTime @db.Date
-  examTypeId    String?
-  departmentId  String?
-  total         Int
+  id           String   @id @default(uuid()) @db.Uuid
+  date         DateTime @db.Date
+  examTypeId   String? @db.Uuid
+  departmentId String? @db.Uuid
+  total        Int
 
   @@unique([date, examTypeId, departmentId])
 }
 
-/**
- * ExamMonthlySummary
- * - สรุปรายเดือน
- */
 model ExamMonthlySummary {
-  id            String   @id @default(uuid())
-  year          Int
-  month         Int
-  examTypeId    String?
-  departmentId  String?
-  total         Int
+  id           String  @id @default(uuid()) @db.Uuid
+  year         Int
+  month        Int
+  examTypeId   String? @db.Uuid
+  departmentId String? @db.Uuid
+  total        Int
 
   @@unique([year, month, examTypeId, departmentId])
 }
 
-/**
- * ProbeDailySummary
- * - ใช้วัด probe utilization
- */
 model ProbeDailySummary {
-  id        String   @id @default(uuid())
+  id        String   @id @default(uuid()) @db.Uuid
   date      DateTime @db.Date
-  probeId   String
+  probeId   String @db.VarChar(255)
   examCount Int
 
   @@unique([date, probeId])
 }
 
-/**
- * DepartmentDailySummary
- * - cache dashboard รายวันต่อแผนก
- */
+// caching table
 model DepartmentDailySummary {
-  date          DateTime @db.Date
-  departmentId  String
-  examCount     Int
+  date         DateTime @db.Date
+  departmentId String @db.Uuid
+  examCount    Int
 
   @@unique([date, departmentId])
 }
 
-/**
- * ExamTypeDailySummary
- */
 model ExamTypeDailySummary {
-  date        DateTime @db.Date
-  examTypeId  String
-  examCount   Int
+  date       DateTime @db.Date
+  examTypeId String @db.Uuid
+  examCount  Int
 
   @@unique([date, examTypeId])
 }
 
-/**
- * OperatorDailySummary
- */
 model OperatorDailySummary {
-  date        DateTime @db.Date
-  operatorId  String
-  examCount   Int
+  date       DateTime @db.Date
+  operatorId String @db.Uuid
+  examCount  Int
 
   @@unique([date, operatorId])
 }
 
-/**
- * PhysicianDailySummary
- */
 model PhysicianDailySummary {
-  date          DateTime @db.Date
-  physicianId   String
-  examCount     Int
+  date        DateTime @db.Date
+  physicianId String @db.Uuid
+  examCount   Int
 
   @@unique([date, physicianId])
 }
 
-/**
- * DeviceDailyUtilization
- * - ใช้คำนวณ OEE / utilization
- */
 model DeviceDailyUtilization {
-  date               DateTime @db.Date
-  deviceId           String
-  usedMinutes        Int
-  availableMinutes   Int
-  utilizationRate    Float
+  date             DateTime @db.Date
+  deviceId         String @db.Uuid
+  usedMinutes      Int
+  availableMinutes Int
+  utilizationRate  Float
 
   @@unique([date, deviceId])
 }
 
-/**
- * DeviceMonthlySummary
- */
 model DeviceMonthlySummary {
-  year              Int
-  month             Int
-  deviceId          String
-  examCount         Int
-  operatingMinutes  Int
+  year             Int
+  month            Int
+  deviceId         String @db.Uuid
+  examCount        Int
+  operatingMinutes Int
 
   @@unique([year, month, deviceId])
 }
 
-/* =====================================================
- * Enums
- * ===================================================== */
+//-----------------------------------
 
 enum MaintenanceType {
-  PREVENTIVE     // บำรุงรักษาตามแผน
-  CORRECTIVE     // ซ่อมเมื่อเสีย
-  CALIBRATION    // ปรับเทียบ
-  INSPECTION     // ตรวจสอบ
+  PREVENTIVE
+  CORRECTIVE
+  CALIBRATION
+  INSPECTION
 }
 
 enum MaintenanceStatus {

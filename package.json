@@ -12,6 +12,7 @@
     "prisma:exam:migrate": "PRISMA_SCHEMA=exam npx prisma migrate dev",
     "prisma:exam:seed": "PRISMA_SCHEMA=exam npx prisma db seed",
     "prisma:exam:studio": "PRISMA_SCHEMA=exam npx prisma studio",
+    "prisma:exam:reset": "PRISMA_SCHEMA=exam npx prisma migrate reset",
     "prisma:auth:migrate": "PRISMA_SCHEMA=auth npx prisma migrate dev",
     "prisma:auth:seed": "PRISMA_SCHEMA=auth npx prisma db seed",
     "prisma:auth:studio": "PRISMA_SCHEMA=auth npx prisma studio"
