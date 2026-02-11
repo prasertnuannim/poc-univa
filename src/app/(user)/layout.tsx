@@ -3,6 +3,8 @@ import UserProviders from "./providers";
 import ToggleButton from "@/components/ui/toggle-button";
 import Sidebar from "./sidebar";
 
+export const dynamic = "force-dynamic";
+
 export default async function UserLayout({
   children,
 }: {

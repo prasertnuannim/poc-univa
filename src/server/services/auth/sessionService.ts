@@ -4,6 +4,16 @@ import type { NextRequest } from "next/server";
 import { auth } from "./authService";
 
 type AuthWithRequest = (req: NextRequest) => Promise<Session | null>;
+type DynamicServerError = { digest?: string };
+
+function isDynamicServerUsageError(err: unknown): err is DynamicServerError {
+  return (
+    typeof err === "object" &&
+    err !== null &&
+    "digest" in err &&
+    (err as DynamicServerError).digest === "DYNAMIC_SERVER_USAGE"
+  );
+}
 
 const getSession = async (request?: NextRequest): Promise<Session | null> => {
   try {
@@ -13,6 +23,9 @@ const getSession = async (request?: NextRequest): Promise<Session | null> => {
     }
     return await auth();
   } catch (err) {
+    if (isDynamicServerUsageError(err)) {
+      throw err;
+    }
     console.error("Error getting session:", err);
     return null;
   }
