@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { CalendarIcon, ChevronDown, ChevronUp } from "lucide-react";
 import DateRangePicker from "@/components/ui/date-range-picker";
+import { todayInTimeZone } from "@/lib/date";
 
 type Mode = "today" | "week" | "month" | "year" | "custom";
 
@@ -40,7 +41,7 @@ export default function ChangePeriodFilter() {
     params.set("mode", mode);
     params.delete("start");
     params.delete("end");
-    params.set("date", new Date().toISOString().slice(0, 10));
+    params.set("date", todayInTimeZone());
     push(params);
     setOpen(false);
   }

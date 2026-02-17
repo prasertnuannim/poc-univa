@@ -7,6 +7,7 @@ import { DateRange } from "react-day-picker";
 import { useRouter } from "next/navigation";
 
 import { cn } from "@/lib/utils";
+import { toDateInputValue } from "@/lib/date";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -27,8 +28,8 @@ export default function DateRangePicker() {
   function applyRange() {
     if (!date?.from || !date?.to) return;
 
-    const start = date.from.toISOString().slice(0, 10);
-    const end = date.to.toISOString().slice(0, 10);
+    const start = toDateInputValue(date.from);
+    const end = toDateInputValue(date.to);
 
     router.push(`?mode=custom&start=${start}&end=${end}`, {
       scroll: false,

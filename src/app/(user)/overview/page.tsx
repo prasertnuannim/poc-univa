@@ -7,6 +7,7 @@ import type { DashboardOverviewState } from "./actions";
 import { loadDashboardOverview } from "./actions";
 import EmptyState from "@/components/ui/emptyState";
 import { FileX } from "lucide-react";
+import { todayInTimeZone } from "@/lib/date";
 
 const initialState: DashboardOverviewState = {
   data: null,
@@ -84,7 +85,7 @@ export default function DashboardPage() {
       if (start) data.set("start", start);
       if (end) data.set("end", end);
     } else if (mode !== "all") {
-      const resolvedDate = date || new Date().toISOString().slice(0, 10);
+      const resolvedDate = date || todayInTimeZone();
       data.set("date", resolvedDate);
     }
     startTransition(() => {

@@ -1,127 +1,122 @@
 "use client";
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { useEffect, useState } from "react";
+import { useMemo, useTransition } from "react";
 import { useSidebar } from "@/context/sidebar-context";
 import { TooltipButton } from "@/components/ui/tooltip-button";
 import ChangePeriodFilter from "../overview/ChangePeriodFilter";
+import DateMenu from "../overview/DateMenu";
 
-type ToggleLayoutProps = {
+type Props = {
   sidebar: React.ReactNode;
   title?: string;
   children: React.ReactNode;
 };
 
-type Mode = "today" | "week" | "month" | "custom" | "year";
+type DateMenuItem = {
+  date: string;
+  score: number;
+};
 
-export default function ToggleButton({
-  sidebar,
-  title,
-  children,
-}: ToggleLayoutProps) {
+/* ------------------ Date Utils ------------------ */
+
+function todayISO() {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, "0");
+  const d = String(now.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function generatePastDates(days: number, baseDate: string) {
+  const [y, m, d] = baseDate.split("-").map(Number);
+  const base = new Date(y, m - 1, d); // local time
+
+  return Array.from({ length: days }, (_, i) => {
+    const date = new Date(base);
+    date.setDate(base.getDate() - i);
+
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
+  });
+}
+
+function scoreFromDate(date: string) {
+  return (
+    date
+      .replace(/-/g, "")
+      .split("")
+      .reduce((sum, value) => sum + Number(value), 0) % 101
+  );
+}
+
+/* ------------------ Component ------------------ */
+
+export default function ToggleLayout({ sidebar, title, children }: Props) {
   const { toggle, open } = useSidebar();
   const pathname = usePathname() ?? "";
+  const router = useRouter();
   const searchParams = useSearchParams();
+  const [isPending, startTransition] = useTransition();
 
-  const rawMode = searchParams?.get("mode");
-  const activeMode = ((rawMode === "day"
-    ? "today"
-    : rawMode === "range"
-      ? "custom"
-      : rawMode) ?? "today") as Mode;
-  const rawDate = searchParams?.get("date");
-  const rangeStart = searchParams?.get("start");
-  const rangeEnd = searchParams?.get("end");
-  const parsedDate = rawDate ? new Date(rawDate) : new Date();
-  const parsedStart = rangeStart ? new Date(rangeStart) : null;
-  const parsedEnd = rangeEnd ? new Date(rangeEnd) : null;
+  const currentDate = todayISO();
 
-  const [isPending, setIsPending] = useState(false);
+  const pastDates = useMemo<DateMenuItem[]>(
+    () =>
+      generatePastDates(30, currentDate).map((date) => ({
+        date,
+        score: scoreFromDate(date),
+      })),
+    [currentDate]
+  );
 
-  const paramsKey = searchParams?.toString();
-  const isOverviewPage =
-    pathname === "/overview" || pathname.endsWith("/overview");
+  const rawDate = searchParams?.get("date") ?? currentDate;
+  const selectedDate = pastDates.some((item) => item.date === rawDate)
+    ? rawDate
+    : currentDate;
 
-  useEffect(() => {
-    if (!isOverviewPage) {
-      const hide = setTimeout(() => {
-        setIsPending(false);
-      }, 0);
-      return () => clearTimeout(hide);
-    }
+  const rawMode = searchParams?.get("mode") ?? "today";
+  const activeMode =
+    rawMode === "day" ? "today" : rawMode === "range" ? "custom" : rawMode;
 
-    const show = setTimeout(() => {
-      setIsPending(true);
-    }, 0);
+  const isToday = selectedDate === currentDate;
 
-    const hide = setTimeout(() => {
-      setIsPending(false);
-    }, 150);
+  const handleChange = (value: string) => {
+    startTransition(() => {
+      const params = new URLSearchParams(searchParams?.toString());
+      params.set("mode", "today");
+      params.set("date", value);
+      router.push(`?${params.toString()}`);
+    });
+  };
 
-    return () => {
-      clearTimeout(show);
-      clearTimeout(hide);
-    };
-  }, [paramsKey, isOverviewPage]);
-
-  const filter =
-    activeMode === "today"
-      ? { mode: "today" as const }
-      : activeMode === "custom"
-        ? {
-            mode: "custom" as const,
-            start: parsedStart ?? new Date(),
-            end: parsedEnd ?? new Date(),
-          }
-        : {
-            mode: activeMode,
-            date: Number.isNaN(parsedDate.getTime()) ? new Date() : parsedDate,
-          };
-
-  const pathTitle = pathname
-    .split("/")
-    .filter(Boolean)
-    .pop()
-    ?.replace(/-/g, " ");
+  const handleResetToday = () => {
+    startTransition(() => {
+      const params = new URLSearchParams(searchParams?.toString());
+      params.set("mode", "today");
+      params.set("date", currentDate);
+      router.push(`?${params.toString()}`);
+    });
+  };
 
   const computedTitle =
     title ??
-    (pathTitle
-      ? pathTitle.replace(/\b\w/g, (c) => c.toUpperCase())
-      : "Homepage");
+    pathname
+      .split("/")
+      .filter(Boolean)
+      .pop()
+      ?.replace(/-/g, " ")
+      .replace(/\b\w/g, (c) => c.toUpperCase()) ??
+    "Homepage";
 
-  const currentDate = new Date().toLocaleDateString("en-US", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
+  const isOverviewPage =
+    pathname === "/overview" || pathname.endsWith("/overview");
 
-  const label =
-    filter.mode === "today"
-      ? currentDate
-      : filter.mode === "week"
-        ? "This week"
-        : filter.mode === "month"
-          ? "This month"
-          : filter.mode === "year"
-            ? "This year"
-            : filter.mode === "custom" && parsedStart && parsedEnd
-              ? `${parsedStart.toLocaleDateString("en-GB", {
-                  day: "2-digit",
-                  month: "short",
-                  year: "numeric",
-                })} - ${parsedEnd.toLocaleDateString("en-GB", {
-                  day: "2-digit",
-                  month: "short",
-                  year: "numeric",
-                })}`
-              : filter.date?.toLocaleDateString("en-GB", {
-                  day: "2-digit",
-                  month: "short",
-                  year: "numeric",
-                });
   return (
     <div className="flex h-dvh">
       {sidebar}
@@ -133,7 +128,7 @@ export default function ToggleButton({
               <TooltipButton
                 label="Toggle sidebar"
                 onClick={toggle}
-                className="rounded-md p-2 text-gray-400 transition hover:bg-gray-100 hover:text-gray-500"
+                className="rounded-md p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-500"
               >
                 {open ? <ChevronLeft size={20} /> : <ChevronRight size={20} />}
               </TooltipButton>
@@ -141,6 +136,7 @@ export default function ToggleButton({
               <h1 className="text-sm text-gray-400">{computedTitle}</h1>
             </div>
           </header>
+
           {isOverviewPage && (
             <AnimatePresence mode="wait">
               {isPending ? (
@@ -154,29 +150,43 @@ export default function ToggleButton({
                 </motion.div>
               ) : (
                 <motion.div
-                  key={`${filter.mode}-${label}`}
+                  key={`${activeMode}-${selectedDate}`}
                   initial={{ opacity: 0, y: -4 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -4 }}
                   transition={{ duration: 0.15 }}
                   className="
                     sticky top-14 z-10
-                    mx-4 mt-3 pr-4
+                    mx-4 mt-3
                     flex items-center justify-between
-                    rounded-xl border border-gray-200/60
-                    bg-white/70 backdrop-blur
-                    px-3 py-2 text-sm
-                    shadow-sm
+                    rounded-2xl border border-gray-200/70
+                    bg-white/80 backdrop-blur
+                    px-4 py-2 text-sm
+                    shadow-md
                   "
                 >
                   <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2 whitespace-nowrap">
-                      <span className="rounded-md bg-linear-to-r from-orange-400 to-red-500 px-2 py-0.5 text-[10px] font-semibold tracking-widest uppercase text-white">
-                        {filter.mode}
-                      </span>
-                      <span className="font-medium text-gray-800">{label}</span>
-                    </div>
-                    <div className="h-4 w-px bg-gray-200" />
+                    {/* TODAY BUTTON */}
+                    <button
+                      onClick={handleResetToday}
+                      className={`
+                        rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide transition cursor-pointer
+                        ${
+                          isToday
+                            ? "bg-linear-to-r from-orange-500 to-red-500 text-white shadow"
+                            : "bg-gray-100 text-gray-600 hover:bg-orange-100 hover:text-orange-600"
+                        }
+                      `}
+                    >
+                      Today
+                    </button>
+
+                    {/* DATE SELECT */}
+                    <DateMenu
+                      items={pastDates}
+                      selected={selectedDate}
+                      onSelect={(date) => handleChange(date)}
+                    />
                   </div>
 
                   <ChangePeriodFilter />
@@ -192,82 +202,47 @@ export default function ToggleButton({
   );
 }
 
-function OverviewFilterSkeleton() {
-  const shimmer =
-    "bg-linear-to-r from-gray-200 via-gray-300 to-gray-200 bg-size-[400px_100%] animate-[shimmer_3s_ease-in-out_infinite]";
+/* ------------------ Skeleton ------------------ */
 
+function OverviewFilterSkeleton() {
   return (
     <div
       className="
         sticky top-14 z-10
-        mx-4 mt-3 pr-4
+        mx-4 mt-3
         flex items-center justify-between
-        rounded-xl border border-gray-200/60
-        bg-white/70 backdrop-blur
-        px-3 py-2 text-sm
-        shadow-sm
+        rounded-2xl border border-gray-200/70
+        bg-white/80 backdrop-blur
+        px-4 py-2
+        shadow-md
       "
     >
-      <div className="flex items-center gap-4">
-        <div className="flex items-center gap-2">
-          <div className={`h-5 w-14 rounded ${shimmer}`} />
-          <div className={`h-4 w-24 rounded ${shimmer}`} />
-        </div>
-        <div className="h-4 w-px bg-gray-200" />
-      </div>
-      <div className={`h-8 w-28 rounded-md ${shimmer}`} />
+      <div className="h-6 w-24 animate-pulse rounded bg-gray-200" />
+      <div className="h-8 w-28 animate-pulse rounded bg-gray-200" />
     </div>
   );
 }
 
+type ToggleButtonSkeletonProps = {
+  sidebar: React.ReactNode;
+};
+
 export function ToggleButtonSkeleton({
   sidebar,
-}: {
-  sidebar?: React.ReactNode;
-}) {
-  const shimmer =
-    "bg-linear-to-r from-gray-200 via-gray-300 to-gray-200 bg-size-[400px_100%] animate-[shimmer_3s_ease-in-out_infinite]";
-
+}: ToggleButtonSkeletonProps) {
   return (
     <div className="flex h-dvh">
-      {sidebar ?? <div className="w-64 bg-white" />}
+      {sidebar}
 
       <div className="flex flex-1 flex-col overflow-hidden">
-        <div className="flex justify-between">
-          <header className="flex h-14 items-center justify-between bg-white px-4">
-            <div className="flex items-center gap-3">
-              <div className={`h-8 w-8 rounded-md ${shimmer}`} />
-              <div className={`h-4 w-28 rounded ${shimmer}`} />
-            </div>
-          </header>
-          <div
-            className="
-              sticky top-14 z-10
-              mx-4 mt-3 pr-4
-              flex items-center justify-between
-              rounded-xl border border-gray-200/60
-              bg-white/70 backdrop-blur
-              px-3 py-2 text-sm
-              shadow-sm
-            "
-          >
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <div className={`h-5 w-16 rounded ${shimmer}`} />
-                <div className={`h-4 w-28 rounded ${shimmer}`} />
-              </div>
-              <div className="h-4 w-px bg-gray-200" />
-            </div>
-            <div className={`h-8 w-28 rounded-md ${shimmer}`} />
-          </div>
-        </div>
+        <header className="flex h-14 items-center bg-white px-4">
+          <div className="h-4 w-24 animate-pulse rounded bg-gray-200" />
+        </header>
+
+        <OverviewFilterSkeleton />
 
         <main className="flex-1 overflow-y-auto px-4 py-3">
-          <div className="space-y-4">
-            <div className={`h-32 w-full rounded-xl ${shimmer}`} />
-            <div className={`h-64 w-full rounded-xl ${shimmer}`} />
-            <div className={`h-40 w-full rounded-xl ${shimmer}`} />
-          </div>
+          <div className="h-48 w-full animate-pulse rounded-xl bg-gray-100" />
         </main>
       </div>
     </div>
