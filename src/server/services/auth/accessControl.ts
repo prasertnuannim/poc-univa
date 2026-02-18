@@ -3,8 +3,9 @@ import { AccessRole } from "@/lib/auth/accessRole";
 export const ACCESS_RULES: Record<string, AccessRole[]> = {
   "/admin": [AccessRole.Admin],
   "/overview": [AccessRole.Admin, AccessRole.User],
-  "/doctor": [AccessRole.Doctor],
-  "/nurse": [AccessRole.Nurse],
+  "/dashboard": [AccessRole.Admin, AccessRole.User],
+  "/data-records": [AccessRole.Admin, AccessRole.User],
+  "/device-management": [AccessRole.Admin],
 };
 
 export function matchProtectedPath(pathname: string): string | undefined {

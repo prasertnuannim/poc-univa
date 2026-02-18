@@ -1,6 +1,6 @@
 import type { OverviewQuery, DateFilter, OverviewRaw } from "@/server/domain/dashboard/overview";
 import type { TimeGranularity } from "@/server/constants/dashboard";
-import * as repo from "@/server/query/overviewRepo";
+import * as repo from "@/server/query/overviewQuery";
 import { createAppError } from "@/server/security/appError";
 
 function parseDateOrThrow(v: string, name: string) {

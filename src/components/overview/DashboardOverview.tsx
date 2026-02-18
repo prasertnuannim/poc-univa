@@ -11,6 +11,7 @@ type DashboardOverviewProps = {
   typeDonut: { name: string; value: number }[];
   perUnit: { unit: string; value: number }[];
   maintenanceRows: { date: string; device: string; details: string }[];
+  mode: string;
 };
 
 export default function DashboardOverview({
@@ -18,6 +19,7 @@ export default function DashboardOverview({
   typeDonut,
   perUnit,
   maintenanceRows,
+  mode,
 }: DashboardOverviewProps) {
   const totalExams = volumeSeries.reduce((sum, row) => sum + row.value, 0);
 
@@ -37,7 +39,7 @@ export default function DashboardOverview({
 
       {/* Charts row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <ExamsVolumeLine data={volumeSeries} />
+        <ExamsVolumeLine data={volumeSeries} mode={mode} />
         <ExamsTypeDonut data={typeDonut} />
       </div>
 

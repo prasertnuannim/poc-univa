@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { createExam } from "@/server/services/exam.service"
+import { createExam } from "@/server/services/examService"
 import { createExamSchema } from "@/server/schemas/create-exam.schema"
 
 export async function POST(req: NextRequest) {

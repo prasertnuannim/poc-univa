@@ -4,6 +4,7 @@ export enum AccessRole {
   Doctor = "doctor",
   Nurse = "nurse",
   Guest = "home",
+  PowerUser = "power-user",
 }
 
 export const ROLE_REDIRECT_MAP: Record<AccessRole, string> = {
@@ -11,6 +12,7 @@ export const ROLE_REDIRECT_MAP: Record<AccessRole, string> = {
   [AccessRole.User]: "/overview",
   [AccessRole.Doctor]: "/doctor",
   [AccessRole.Nurse]: "/schedule",
+  [AccessRole.PowerUser]: "/account",
   [AccessRole.Guest]: "/",
 };
 

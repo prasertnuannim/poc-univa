@@ -17,20 +17,5 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
-      
-  # ตัวเลือกเสริม: pgAdmin
-  pgadmin:
-    image: dpage/pgadmin4:8
-    restart: unless-stopped
-    environment:
-      PGADMIN_DEFAULT_EMAIL: sert@gmail.com
-      PGADMIN_DEFAULT_PASSWORD: sert
-      TZ: Asia/Bangkok
-    ports:
-      - "5050:80"
-    depends_on:
-      db:
-        condition: service_healthy
-
 volumes:
   pgdata:

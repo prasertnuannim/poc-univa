@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { withAuthAction } from "@/server/security/safeAction";
 import { UserDTO } from "@/server/dto/user.dto";
 import { userService } from "@/server/services/userService";
-import { userMapper } from "@/server/mappers/user.mapper";
+import { userMapper } from "@/server/mappers/userMapper";
 import type { AccountActionResult, FullUser } from "@/types/account.type";
 import { AccessRole } from "@/server/services/auth/authService";
 import { PaginationDTO } from "@/server/dto/pagination.dto";

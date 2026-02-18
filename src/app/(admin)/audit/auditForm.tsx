@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { DataTable, Column } from "@/components/form/dataTable";
 import { getAuditLogsAction } from "./actions";
-import { mapAuditLogToRow } from "@/server/mappers/audit.mapper";
+import { mapAuditLogToRow } from "@/server/mappers/auditMapper";
 import type { AuditLogRow } from "@/types/audit.type";
 
 type AuditColumnKey = "actor" | "module" | "action" | "target";

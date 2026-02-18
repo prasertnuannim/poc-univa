@@ -6,7 +6,7 @@ import { OVERVIEW_RATE_LIMIT } from "@/server/constants/dashboard";
 import { overviewSchema, type OverviewInput } from "@/server/schemas/overview.schema";
 import { buildFilterFromInput, fetchOverviewRaw } from "@/server/services/overviewService";
 import { overviewRateLimitKey } from "@/server/security/dashboardPolicy";
-import { toDashboardOverviewDTOOrNull } from "@/server/mappers/overview.mapper";
+import { toDashboardOverviewDTOOrNull } from "@/server/mappers/overviewMapper";
 import type { DashboardOverviewDTO } from "@/server/dto/overview.dto";
 
 

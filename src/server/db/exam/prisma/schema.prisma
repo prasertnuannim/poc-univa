@@ -164,7 +164,6 @@ model ProbeDailySummary {
   date      DateTime @db.Date
   probeId   String @db.VarChar(255)
   examCount Int
-
   @@unique([date, probeId])
 }
 

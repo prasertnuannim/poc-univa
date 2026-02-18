@@ -2,7 +2,7 @@
 import { examPrisma } from "@/server/db/exam/client";
 import { ExamStatus as PrismaExamStatus } from "@/server/db/exam/prisma/generated/client";
 import { CreateExamDTO } from "@/server/dto/create-exam.dto"
-import { ExamMapper } from "@/server/mappers/exam.mapper"
+import { ExamMapper } from "@/server/mappers/examMapper"
 import { ExamStatus } from "@/types/exam"
 
 function toPrismaExamStatus(status: ExamStatus): PrismaExamStatus {

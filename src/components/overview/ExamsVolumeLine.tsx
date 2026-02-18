@@ -8,10 +8,13 @@ import {
   LineElement,
   Tooltip,
   type ChartOptions,
+  type ScriptableContext,
 } from "chart.js";
 import { useEffect, useRef } from "react";
 import { Line } from "react-chartjs-2";
-import ChartDataLabels from "chartjs-plugin-datalabels";
+import ChartDataLabels, {
+  type Context as DataLabelsContext,
+} from "chartjs-plugin-datalabels";
 
 ChartJS.register(
   CategoryScale,
@@ -24,7 +27,10 @@ ChartJS.register(
 
 type ExamsVolumeLineProps = {
   data: { label: string; value: number }[];
+  mode: string;
 };
+
+
 
 const THAI_TIME_OFFSET_HOURS = 7;
 const HOUR_LABEL_REGEX = /^(\d{2}):00$/;
@@ -40,14 +46,43 @@ function toThaiHourLabel(label: string) {
   return `${String(thaiHour).padStart(2, "0")}:00`;
 }
 
-export default function ExamsVolumeLine({ data }: ExamsVolumeLineProps) {
+function getThaiHour() {
+  const hour = new Date().getHours();
+  return (hour + THAI_TIME_OFFSET_HOURS) % 24;
+}
+
+export default function ExamsVolumeLine({ data, mode }: ExamsVolumeLineProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollLeft = scrollRef.current.scrollWidth;
+    if (!scrollRef.current) return;
+
+    const container = scrollRef.current;
+
+    if (mode !== "today") {
+      container.scrollLeft = 0;
+      return;
     }
-  }, []);
+
+    const thaiHour = getThaiHour();
+
+    const index = data.findIndex((d) => {
+      const match = /^(\d{2}):00$/.exec(d.label);
+      return match && Number(match[1]) === thaiHour;
+    });
+
+    if (index !== -1) {
+      const pointWidth = container.scrollWidth / data.length;
+      const target = pointWidth * index - container.clientWidth / 2;
+
+      container.scrollTo({
+        left: target,
+        behavior: "smooth",
+      });
+    }
+  }, [mode, data]);
+
+
   const chartData = {
     labels: data.map((d) => toThaiHourLabel(d.label)),
     datasets: [
@@ -58,15 +93,15 @@ export default function ExamsVolumeLine({ data }: ExamsVolumeLineProps) {
         borderWidth: 2,
         tension: 0.35,
 
-        pointRadius: (ctx: any) => {
+        pointRadius: (ctx: ScriptableContext<"line">) => {
           const values = ctx.dataset.data as number[];
           const max = Math.max(...values);
-          return ctx.raw === max ? 8 : 4; // 👈 ขยายเฉพาะจุดสูงสุด
+          return ctx.raw === max ? 5 : 2; // 👈 ขยายเฉพาะจุดสูงสุด
         },
 
         pointBackgroundColor: "#ffffff",
         pointBorderColor: "#4F7BFF",
-        pointBorderWidth: 3,
+        pointBorderWidth: 2,
       },
     ],
   };
@@ -86,9 +121,9 @@ export default function ExamsVolumeLine({ data }: ExamsVolumeLineProps) {
         align: "top",
         font: {
           weight: "bold",
-          size: 13,
+          size: 10,
         },
-        formatter: (value: number, context: any) => {
+        formatter: (value: number, context: DataLabelsContext) => {
           const data = context.chart.data.datasets[0].data as number[];
           const max = Math.max(...data);
           return value === max ? value : "";
@@ -134,7 +169,7 @@ export default function ExamsVolumeLine({ data }: ExamsVolumeLineProps) {
     <div className="rounded-xl bg-white p-5 border shadow-sm">
       <h3 className="mb-4 text-sm font-semibold text-gray-700">Exams volume</h3>
       <div ref={scrollRef} className="overflow-x-auto scrollbar-hide">
-        <div className="min-w-[1200px] h-[280px]">
+        <div className="min-w-[1200px] h-[230px]">
           <Line data={chartData} options={options} />
         </div>
       </div>
