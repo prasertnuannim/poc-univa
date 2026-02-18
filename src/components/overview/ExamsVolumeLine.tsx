@@ -10,11 +10,12 @@ import {
   type ChartOptions,
   type ScriptableContext,
 } from "chart.js";
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { Line } from "react-chartjs-2";
 import ChartDataLabels, {
   type Context as DataLabelsContext,
 } from "chartjs-plugin-datalabels";
+import { getThaiHour, toThaiHourLabel } from "@/lib/utils";
 
 ChartJS.register(
   CategoryScale,
@@ -27,64 +28,54 @@ ChartJS.register(
 
 type ExamsVolumeLineProps = {
   data: { label: string; value: number }[];
-  mode: string;
+  mode: string; // "today" | "custom" | "week" | ...
 };
-
-
-
-const THAI_TIME_OFFSET_HOURS = 7;
-const HOUR_LABEL_REGEX = /^(\d{2}):00$/;
-
-function toThaiHourLabel(label: string) {
-  const match = HOUR_LABEL_REGEX.exec(label);
-  if (!match) return label;
-
-  const hour = Number(match[1]);
-  if (Number.isNaN(hour) || hour < 0 || hour > 23) return label;
-
-  const thaiHour = (hour + THAI_TIME_OFFSET_HOURS) % 24;
-  return `${String(thaiHour).padStart(2, "0")}:00`;
-}
-
-function getThaiHour() {
-  const hour = new Date().getHours();
-  return (hour + THAI_TIME_OFFSET_HOURS) % 24;
-}
 
 export default function ExamsVolumeLine({ data, mode }: ExamsVolumeLineProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  const chartLabels = useMemo(
+    () => data.map((d) => toThaiHourLabel(d.label)),
+    [data]
+  );
+
   useEffect(() => {
-    if (!scrollRef.current) return;
-
     const container = scrollRef.current;
+    if (!container) return;
 
+    // helper: รอให้ DOM/Chart วาดเสร็จจริงก่อน (กัน scroll หลุด)
+    const afterPaint = (fn: () => void) => {
+      requestAnimationFrame(() => requestAnimationFrame(fn));
+    };
+
+    // ✅ ไม่ใช่ today: ชิดซ้ายกราฟ
     if (mode !== "today") {
-      container.scrollLeft = 0;
+      afterPaint(() => {
+        container.scrollTo({ left: 0, behavior: "auto" });
+      });
       return;
     }
 
-    const thaiHour = getThaiHour();
+    // ✅ today: เลื่อนไปชั่วโมงไทยปัจจุบัน
+    afterPaint(() => {
+      if (!chartLabels.length) return;
 
-    const index = data.findIndex((d) => {
-      const match = /^(\d{2}):00$/.exec(d.label);
-      return match && Number(match[1]) === thaiHour;
+      const thaiHour = getThaiHour(); // ✅ คืน 0-23 "เวลาไทยจริง" (ห้าม +7 ซ้ำ)
+      const targetLabel = `${String(thaiHour).padStart(2, "0")}:00`;
+
+      const index = chartLabels.findIndex((label) => label === targetLabel);
+      if (index === -1) return;
+
+      const pointWidth = container.scrollWidth / Math.max(1, chartLabels.length);
+      let target = pointWidth * index - container.clientWidth / 2;
+      target = Math.max(0, target);
+
+      container.scrollTo({ left: target, behavior: "smooth" });
     });
-
-    if (index !== -1) {
-      const pointWidth = container.scrollWidth / data.length;
-      const target = pointWidth * index - container.clientWidth / 2;
-
-      container.scrollTo({
-        left: target,
-        behavior: "smooth",
-      });
-    }
-  }, [mode, data]);
-
+  }, [mode, data, chartLabels]);
 
   const chartData = {
-    labels: data.map((d) => toThaiHourLabel(d.label)),
+    labels: chartLabels,
     datasets: [
       {
         data: data.map((d) => d.value),
@@ -96,7 +87,7 @@ export default function ExamsVolumeLine({ data, mode }: ExamsVolumeLineProps) {
         pointRadius: (ctx: ScriptableContext<"line">) => {
           const values = ctx.dataset.data as number[];
           const max = Math.max(...values);
-          return ctx.raw === max ? 5 : 2; // 👈 ขยายเฉพาะจุดสูงสุด
+          return ctx.raw === max ? 5 : 2;
         },
 
         pointBackgroundColor: "#ffffff",
@@ -109,23 +100,17 @@ export default function ExamsVolumeLine({ data, mode }: ExamsVolumeLineProps) {
   const options: ChartOptions<"line"> = {
     responsive: true,
     maintainAspectRatio: false,
-
-    layout: {
-      padding: 0, // 👈 ไม่มีช่องว่างภายใน canvas
-    },
+    layout: { padding: 0 },
 
     plugins: {
       datalabels: {
         color: "#4F7BFF",
         anchor: "end",
         align: "top",
-        font: {
-          weight: "bold",
-          size: 10,
-        },
+        font: { weight: "bold", size: 10 },
         formatter: (value: number, context: DataLabelsContext) => {
-          const data = context.chart.data.datasets[0].data as number[];
-          const max = Math.max(...data);
+          const ds = context.chart.data.datasets[0].data as number[];
+          const max = Math.max(...ds);
           return value === max ? value : "";
         },
       },
@@ -133,15 +118,11 @@ export default function ExamsVolumeLine({ data, mode }: ExamsVolumeLineProps) {
         backgroundColor: "#1f2937",
         titleColor: "#fff",
         bodyColor: "#fff",
-        displayColors: false, 
+        displayColors: false,
         callbacks: {
-        title: (items) => {
-          return `Time: ${items[0].label}`;
+          title: (items) => `Time: ${items[0].label}`,
+          label: (context) => `Total: ${context.parsed.y} Exams`,
         },
-        label: (context) => {
-          return `Total: ${context.parsed.y} Exams`;
-        },
-      },
       },
     },
 
@@ -149,18 +130,12 @@ export default function ExamsVolumeLine({ data, mode }: ExamsVolumeLineProps) {
       x: {
         grid: { color: "#f1f5f9" },
         border: { display: false },
-        ticks: {
-          autoSkip: false,
-          color: "#64748b",
-        },
+        ticks: { autoSkip: false, color: "#64748b" },
       },
       y: {
         beginAtZero: true,
-        max: 100, // 👈 fix max
-        ticks: {
-          stepSize: 20, // 👈 0,20,40,60,80,100
-          color: "#64748b",
-        },
+        max: 100,
+        ticks: { stepSize: 20, color: "#64748b" },
       },
     },
   };
@@ -168,6 +143,7 @@ export default function ExamsVolumeLine({ data, mode }: ExamsVolumeLineProps) {
   return (
     <div className="rounded-xl bg-white p-5 border shadow-sm">
       <h3 className="mb-4 text-sm font-semibold text-gray-700">Exams volume</h3>
+
       <div ref={scrollRef} className="overflow-x-auto scrollbar-hide">
         <div className="min-w-[1200px] h-[230px]">
           <Line data={chartData} options={options} />

@@ -16,7 +16,6 @@ const notoThai = Noto_Sans_Thai({
   display: "swap",
 });
 
-// ✅ ข้อมูล SEO / OG / Twitter / JSON-LD
 export const metadata: Metadata = {
   metadataBase: new URL("https://phran.dev"),
   title: {

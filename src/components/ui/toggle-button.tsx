@@ -32,7 +32,7 @@ function todayISO() {
 
 function generatePastDates(days: number, baseDate: string) {
   const [y, m, d] = baseDate.split("-").map(Number);
-  const base = new Date(y, m - 1, d); // local time
+  const base = new Date(y, m - 1, d);
 
   return Array.from({ length: days }, (_, i) => {
     const date = new Date(base);
@@ -89,8 +89,10 @@ export default function ToggleLayout({ sidebar, title, children }: Props) {
   const handleChange = (value: string) => {
     startTransition(() => {
       const params = new URLSearchParams(searchParams?.toString());
-      params.set("mode", "today");
+      params.set("mode", value === currentDate ? "today" : "day");
       params.set("date", value);
+      params.delete("start");
+      params.delete("end");
       router.push(`?${params.toString()}`);
     });
   };
