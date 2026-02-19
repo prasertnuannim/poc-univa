@@ -4,9 +4,8 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { CalendarIcon, ChevronDown, ChevronUp } from "lucide-react";
 import DateRangePicker from "@/components/ui/date-range-picker";
-import { todayInTimeZone } from "@/lib/date";
 
-type Mode = "today" | "week" | "month" | "year" | "custom";
+type Mode = "today" | "previous-day" | "week" | "month" | "year" | "custom";
 
 export default function ChangePeriodFilter() {
   const [open, setOpen] = useState(false);
@@ -15,11 +14,17 @@ export default function ChangePeriodFilter() {
   const pathname = usePathname() ?? "/";
   const searchParams = useSearchParams();
   const rawMode = searchParams?.get("mode");
-  const active = ((rawMode === "day"
-    ? "today"
-    : rawMode === "range"
+  const active: Mode =
+    rawMode === "today" ||
+    //rawMode === "previous-day" ||
+    rawMode === "week" ||
+    rawMode === "month" ||
+    rawMode === "year" ||
+    rawMode === "custom"
+      ? rawMode
+      : rawMode === "range"
       ? "custom"
-      : rawMode) ?? "today") as Mode;
+      : "today";
 
   useEffect(() => {
     const mode = searchParams?.get("mode");
@@ -39,15 +44,15 @@ export default function ChangePeriodFilter() {
   function select(mode: Mode) {
     const params = new URLSearchParams(searchParams?.toString() ?? "");
     params.set("mode", mode);
+    params.delete("date");
     params.delete("start");
     params.delete("end");
-    params.set("date", todayInTimeZone());
     push(params);
     setOpen(false);
   }
 
   return (
-    <div className="relative inline-flex" ref={ref}>
+    <div className="relative inline-flex pl-2" ref={ref}>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -79,7 +84,7 @@ function DateFilterDropdown({
   onSelect: (mode: Mode) => void;
 }) {
   return (
-    <div className="w-full rounded-lg border bg-white p-3 text-sm shadow-lg">
+    <div className="w-full rounded-lg border bg-white p-3 text-sm shadow-lg mt-2">
       {/* Header */}
       <div className="mb-3 flex items-center justify-between">
         <span className="font-medium text-gray-800">Filter by Date</span>
@@ -92,24 +97,24 @@ function DateFilterDropdown({
       </div>
 
       {/* Presets */}
-      <div className="mb-3 grid grid-cols-2 gap-2">
-        <Preset
+      <div className="mb-3 grid grid-cols-3 gap-2">
+        {/* <Preset
           label="Today"
           active={active === "today"}
           onClick={() => onSelect("today")}
-        />
+        /> */}
         <Preset
-          label="This week"
+          label="Week"
           active={active === "week"}
           onClick={() => onSelect("week")}
         />
         <Preset
-          label="This month"
+          label="Month"
           active={active === "month"}
           onClick={() => onSelect("month")}
         />
         <Preset
-          label="This year"
+          label="Year"
           active={active === "year"}
           onClick={() => onSelect("year")}
         />

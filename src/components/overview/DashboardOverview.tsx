@@ -45,7 +45,7 @@ export default function DashboardOverview({
 
       {/* Bottom row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <ExamsPerUnitBar data={perUnit} />
+        <ExamsPerUnitBar data={perUnit} mode={mode} />
         <RecentMaintenanceTable data={maintenanceRows} />
       </div>
     </div>

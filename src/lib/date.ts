@@ -25,3 +25,10 @@ export function todayInTimeZone(timeZone: string = THAI_TIME_ZONE): string {
 
   return `${year}-${month}-${day}`;
 }
+
+export function yesterdayInTimeZone(timeZone: string = THAI_TIME_ZONE): string {
+  const today = todayInTimeZone(timeZone);
+  const d = new Date(`${today}T00:00:00`);
+  d.setDate(d.getDate() - 1);
+  return toDateInputValue(d);
+}

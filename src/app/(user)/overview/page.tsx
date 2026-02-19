@@ -7,7 +7,7 @@ import type { DashboardOverviewState } from "./actions";
 import { loadDashboardOverview } from "./actions";
 import EmptyState from "@/components/ui/emptyState";
 import { FileX } from "lucide-react";
-import { todayInTimeZone } from "@/lib/date";
+import { todayInTimeZone, yesterdayInTimeZone } from "@/lib/date";
 import { SkeletonOverview } from "@/components/overview/SkeletonOverview";
 
 const initialState: DashboardOverviewState = {
@@ -22,18 +22,11 @@ const initialState: DashboardOverviewState = {
 
 export default function DashboardPage() {
   const searchParams = useSearchParams();
-
   const [state, setState] = useState<DashboardOverviewState>(initialState);
   const [isLoading, setIsLoading] = useState(true);
-
   const rawMode = searchParams?.get("mode");
   const mode =
-    rawMode === "day"
-      ? "today"
-      : rawMode === "range"
-      ? "custom"
-      : rawMode ?? "today";
-
+    rawMode === "range" ? "custom" : rawMode ?? "today";
   const date = searchParams?.get("date") ?? "";
   const start = searchParams?.get("start") ?? "";
   const end = searchParams?.get("end") ?? "";
@@ -44,20 +37,21 @@ export default function DashboardPage() {
     async function fetchOverview() {
       try {
         setIsLoading(true);
-
         const form = new FormData();
         form.set("mode", mode);
-
         if (mode === "custom") {
           if (start) form.set("start", start);
           if (end) form.set("end", end);
         } else if (mode !== "all") {
-          const resolvedDate = date || todayInTimeZone();
+          let resolvedDate = date;
+
+          if (!resolvedDate) {
+            if (mode === "previous-day") resolvedDate = yesterdayInTimeZone();
+            else resolvedDate = todayInTimeZone();
+          }
           form.set("date", resolvedDate);
         }
-
         const result = await loadDashboardOverview(null, form);
-
         if (!controller.signal.aborted) {
           setState(result);
         }
@@ -74,9 +68,7 @@ export default function DashboardPage() {
         }
       }
     }
-
     fetchOverview();
-
     return () => controller.abort();
   }, [mode, date, start, end]);
 

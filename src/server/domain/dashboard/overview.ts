@@ -2,6 +2,8 @@ import type { TimeGranularity } from "@/server/constants/dashboard";
 
 export type DateFilter =
   | { mode: "today"; date: Date }
+  | { mode: "previous-day"; date: Date }
+  | { mode: "day"; date: Date }
   | { mode: "week"; date: Date }
   | { mode: "month"; date: Date }
   | { mode: "year"; date: Date }

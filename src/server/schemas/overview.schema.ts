@@ -2,7 +2,9 @@ import { z } from "zod";
 
 export const overviewSchema = z
   .object({
-    mode: z.enum(["today", "week", "month", "year", "all", "custom"]).default("today"),
+    mode: z
+      .enum(["today", "previous-day", "day", "week", "month", "year", "all", "custom"])
+      .default("today"),
     date: z.string().optional(),
     start: z.string().optional(),
     end: z.string().optional(),

@@ -14,7 +14,8 @@ function resolveDateRange(filter: DateFilter) {
   let end: Date;
   switch (filter.mode) {
     case "today":
-      console.log("today case")
+    case "day":
+    case "previous-day":
       start = new Date(filter.date); start.setHours(0,0,0,0);
       end = new Date(start); end.setDate(end.getDate() + 1);
       break;
@@ -57,10 +58,7 @@ function resolveGranularityFromFilter(): TimeGranularity {
 
 export async function fetchOverviewRaw(query: OverviewQuery): Promise<OverviewRaw> {
   const { start, end } = resolveDateRange(query.filter);
-  console.log(" start, end>> ",  start, end)
-  console.log("query>>",query)
   const granularity = resolveGranularityFromFilter();
-
   const [volume, types, departments, maintenance] = await Promise.all([
     repo.getVolumeByTime(start, end, granularity),
     repo.getVolumeByType(start, end),
@@ -72,7 +70,7 @@ export async function fetchOverviewRaw(query: OverviewQuery): Promise<OverviewRa
 }
 
 export function buildFilterFromInput(input: {
-  mode: "today" | "week" | "month" | "year" | "all" | "custom";
+  mode: "today" | "previous-day" | "day" | "week" | "month" | "year" | "all" | "custom";
   date?: string;
   start?: string;
   end?: string;

@@ -134,7 +134,7 @@ export default function ExamsVolumeLine({ data, mode }: ExamsVolumeLineProps) {
       },
       y: {
         beginAtZero: true,
-        max: 100,
+        grace: "5%",
         ticks: { stepSize: 20, color: "#64748b" },
       },
     },
@@ -145,7 +145,7 @@ export default function ExamsVolumeLine({ data, mode }: ExamsVolumeLineProps) {
       <h3 className="mb-4 text-sm font-semibold text-gray-700">Exams volume</h3>
 
       <div ref={scrollRef} className="overflow-x-auto scrollbar-hide">
-        <div className="min-w-[1200px] h-[230px]">
+        <div className="min-w-[1200px] h-[280px]">
           <Line data={chartData} options={options} />
         </div>
       </div>

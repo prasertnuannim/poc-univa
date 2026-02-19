@@ -31,8 +31,7 @@ export async function loadDashboardOverview(
   formData: FormData
 ): Promise<DashboardOverviewState> {
   const rawMode = (formData.get("mode") ?? "today") as string;
-  const normalizedMode =
-    rawMode === "day" ? "today" : rawMode === "range" ? "custom" : rawMode;
+  const normalizedMode = rawMode === "range" ? "custom" : rawMode;
 
   const raw: OverviewInput = {
     mode: normalizedMode as OverviewInput["mode"],
