@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { DataTable, Column } from "@/components/form/dataTable";
+import { DataTable, Column } from "@/components/form/DataTable";
 import { getAuditLogsAction } from "./actions";
 import { mapAuditLogToRow } from "@/server/mappers/auditMapper";
 import type { AuditLogRow } from "@/types/audit.type";

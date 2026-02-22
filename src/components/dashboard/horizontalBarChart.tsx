@@ -11,57 +11,97 @@ import {
   type ChartOptions,
 } from "chart.js";
 import { Bar } from "react-chartjs-2";
+import ChartDataLabels from "chartjs-plugin-datalabels";
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Tooltip,
+  Legend,
+  ChartDataLabels,
+);
 
 type HorizontalBarChartProps = {
   labels: string[];
   values: number[];
   title?: string;
-  height?: number; // px
+  maxHeight?: number;
 };
 
 export default function HorizontalBarChart({
   labels,
   values,
   title,
-  height = 260,
+  maxHeight,
 }: HorizontalBarChartProps) {
-  const data = React.useMemo(
-    () => ({
+  const rowHeight = 47;
+  const maxRows = 10;
+
+  const calculatedHeight = labels.length * rowHeight;
+  const defaultMaxHeight = maxRows * rowHeight;
+  const containerHeight = Math.min(
+    calculatedHeight,
+    maxHeight ?? defaultMaxHeight,
+  );
+
+  const data = React.useMemo(() => {
+    const max = Math.max(...values, 1);
+
+    return {
       labels,
       datasets: [
         {
-          label: title ?? "Breakdown",
           data: values,
-          borderWidth: 1,
-          borderRadius: 8,
-          barThickness: 14,
+          borderRadius: 6,
+          barThickness: rowHeight - 12,
+          backgroundColor: values.map((v) => {
+            const ratio = v / max;
+            if (ratio > 0.75) return "#0d9488";
+            if (ratio > 0.45) return "#14b8a6";
+            return "#99f6e4";
+          }),
         },
       ],
-    }),
-    [labels, values, title],
-  );
+    };
+  }, [labels, values]);
 
   const options = React.useMemo<ChartOptions<"bar">>(
     () => ({
       responsive: true,
       maintainAspectRatio: false,
-      indexAxis: "y", // ✅ ทำให้เป็น Horizontal Bar
+      indexAxis: "y",
+      animation: { duration: 250 },
+
       plugins: {
         legend: { display: false },
         tooltip: { enabled: true },
+        datalabels: {
+          anchor: "center",
+          align: "right",
+          clamp: true,
+          color: "#111827",
+          font: {
+            weight: 500,
+            size: 10,
+          },
+          formatter: (value: number) =>
+            Number(value).toLocaleString(),
+        },
       },
+
       scales: {
         x: {
+           position: "top",
           beginAtZero: true,
-          grid: { display: true },
+          grid: { color: "rgba(0,0,0,0.06)" },
           border: { display: false },
           ticks: { precision: 0 },
         },
         y: {
           grid: { display: false },
           border: { display: false },
+          ticks: { color: "#374151" },
         },
       },
     }),
@@ -69,10 +109,20 @@ export default function HorizontalBarChart({
   );
 
   return (
-    <div className="w-full">
-      {title ? <div className="mb-2 text-sm font-medium">{title}</div> : null}
-      <div style={{ height }}>
-        <Bar data={data} options={options} />
+    <div className="w-full h-full">
+      {title && (
+        <div className="mb-3 text-sm font-semibold text-gray-700">
+          {title}
+        </div>
+      )}
+
+      <div
+        className="overflow-y-auto pr-2 scroll-smooth"
+        style={{ height: containerHeight }}
+      >
+        <div style={{ height: calculatedHeight }}>
+          <Bar data={data} options={options} />
+        </div>
       </div>
     </div>
   );

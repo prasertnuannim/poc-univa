@@ -48,7 +48,7 @@ export default function DateMenu({ items, selected, onSelect }: Props) {
       {/* Trigger */}
       <button
         onClick={() => setOpen((prev) => !prev)}
-        className="rounded-lg border border-gray-200 bg-white px-3 py-1 text-sm shadow-sm hover:bg-gray-50 min-w-[140px]">
+        className="rounded-lg border border-gray-200 bg-white px-3 py-1 text-sm shadow-sm hover:bg-gray-100 min-w-[140px] cursor-pointer">
         {formatDate(selected)}
       </button>
 

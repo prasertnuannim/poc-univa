@@ -42,7 +42,7 @@ export default function FilterSelect({
         <div className="space-y-3">
           {/* Header */}
           <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span>Filter by Date</span>
+            <span>Filter by : </span>
             <button className="hover:underline">Clear</button>
           </div>
 

@@ -2,17 +2,17 @@
 
 import { useActionState, useState } from "react";
 import { redirect } from "next/navigation";
-import { SubmitButton } from "@/components/form/submitButton";
-import FormInput from "@/components/form/formInput";
+import { SubmitButton } from "@/components/form/SubmitButton";
+import FormInput from "@/components/form/FormInput";
 import { LoginFormState } from "@/types/auth.type";
-import FormAlert from "@/components/form/formAlert";
+import FormAlert from "@/components/form/FormAlert";
 import { loginUser } from "./action";
 import RegisterModal from "../../../components/auth/RegisterForm";
 
 export default function LoginForm() {
   const initialState: LoginFormState = {
     errors: {},
-    values: { email: "admin@example.com", password: "admin123" },
+    values: { email: "admin1@example.com", password: "admin123" },
   };
 
   const [state, formAction, isPending] = useActionState(
@@ -28,7 +28,7 @@ export default function LoginForm() {
   return (
     <>
       <form action={formAction} className="space-y-1">
-        <p className="flex justify-center text-md text-black/20 font-bold">Login with Email</p>
+        <p className="flex justify-center text-md text-black/30 font-bold">Login with Email</p>
         <FormInput
           name="email"
           type="email"

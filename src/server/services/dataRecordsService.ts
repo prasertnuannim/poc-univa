@@ -1,4 +1,4 @@
-import { findRecordeData, countExams } from "../query/dataRecordeQuery";
+import { findRecordeData, countExams } from "../query/dataRecorde.query";
 import { mapExamToDataRecord } from "../mappers/dataRecordMapper";
 import type { DataRecordRow } from "@/types/data-records.type";
 

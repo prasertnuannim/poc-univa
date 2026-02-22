@@ -1,6 +1,6 @@
 "use client";
 import FilterPanel from "@/components/data-records/filterPanel";
-import Pagination from "@/components/data-records/paginationBar";
+import Pagination from "@/components/data-records/PaginationBar";
 import * as React from "react";
 import type { DataRecordRow } from "@/types/data-records.type";
 import { getDataRecordsAction } from "./action";

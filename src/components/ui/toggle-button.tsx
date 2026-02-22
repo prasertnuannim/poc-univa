@@ -116,11 +116,11 @@ export default function ToggleLayout({ sidebar, title, children }: Props) {
               <TooltipButton
                 label="Toggle sidebar"
                 onClick={toggle}
-                className="rounded-md p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-500"
+                className="rounded-md p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-500 cursor-pointer"
               >
                 {open ? <ChevronLeft size={20} /> : <ChevronRight size={20} />}
               </TooltipButton>
-              <h1 className="text-sm text-gray-400 cursor-pointer">
+              <h1 className="text-sm text-gray-400">
                 {computedTitle}
               </h1>
             </div>
@@ -168,7 +168,6 @@ export default function ToggleLayout({ sidebar, title, children }: Props) {
                       {safeMode}
                     </button>
 
-                    {/* DATE SELECT */}
                     <DateMenu
                       items={pastDates}
                       selected={selectedDate}

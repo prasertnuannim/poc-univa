@@ -11,22 +11,34 @@ import {
   type ChartOptions,
 } from "chart.js";
 import { Bar } from "react-chartjs-2";
+import ChartDataLabels from "chartjs-plugin-datalabels";
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Tooltip,
+  Legend,
+  ChartDataLabels,
+);
 
 export type ScrollBarBarChartProps = {
   title: string;
   labels: string[];
   values: number[];
 
-  pxPerBar?: number;   // ความกว้างต่อแท่ง (ยิ่งมาก ยิ่งต้องเลื่อน)
-  height?: number;     // ความสูงกราฟ
-  minWidth?: number;   // กันกราฟแคบเกิน
+  pxPerBar?: number; // ความกว้างต่อแท่ง (ยิ่งมาก ยิ่งต้องเลื่อน)
+  height?: number; // ความสูงกราฟ
+  minWidth?: number; // กันกราฟแคบเกิน
 
   yLabel?: string;
   showLegend?: boolean;
 
-  onBarClick?: (payload: { index: number; label: string; value: number }) => void;
+  onBarClick?: (payload: {
+    index: number;
+    label: string;
+    value: number;
+  }) => void;
 };
 
 function useContainerWidth<T extends HTMLElement>() {
@@ -77,17 +89,53 @@ export default function ScrollBarBarChart({
         },
       ],
     }),
-    [safeLabels, safeValues, yLabel, pxPerBar]
+    [safeLabels, safeValues, yLabel, pxPerBar],
   );
 
-  const options: ChartOptions<"bar"> = React.useMemo(
-    () => ({
+  const options: ChartOptions<"bar"> = React.useMemo(() => {
+    const barCount = safeLabels.length;
+    let rotation = 0;
+    if (barCount > 18) rotation = 60;
+    else if (barCount > 12) rotation = 45;
+    else if (barCount > 8) rotation = 20;
+
+    return {
       responsive: true,
       maintainAspectRatio: false,
+
+      layout: {
+        padding: {
+          // Keep a little room for rotated x labels, but avoid pushing scrollbar too low.
+          bottom: rotation >= 60 ? 16 : rotation > 0 ? 8 : 0,
+        },
+      },
+
       plugins: {
         legend: { display: showLegend },
-        tooltip: { enabled: true },
+        tooltip: {
+          enabled: true,
+          callbacks: {
+            // 👇 Tooltip แสดง label เต็มเสมอ
+            title: (items) => {
+              const i = items[0]?.dataIndex;
+              return safeLabels[i] ?? "";
+            },
+          },
+        },
+        datalabels: {
+          color: "#fff",
+          anchor: "center",
+          offset: 4,
+          font: {
+            weight: 400,
+            size: 10,
+          },
+          formatter: (value: number) => {
+            return value; // ถ้าจะ format เพิ่มใส่ตรงนี้
+          },
+        },
       },
+
       onClick: (_event, elements) => {
         if (!onBarClick) return;
         const el = elements?.[0];
@@ -100,11 +148,28 @@ export default function ScrollBarBarChart({
           value: safeValues[i],
         });
       },
+
       scales: {
         x: {
           grid: { display: false },
-          ticks: { autoSkip: false, maxRotation: 0 },
+          ticks: {
+            autoSkip: false,
+            minRotation: rotation,
+            maxRotation: rotation,
+            callback: function (_value, index) {
+              const label = safeLabels[index];
+              if (!label) return "";
+
+              const maxLength = 14;
+
+              // 🎯 ตัดจากด้านหน้า เก็บท้ายไว้ 14 ตัว
+              return label.length > maxLength
+                ? "…" + label.slice(-maxLength)
+                : label;
+            },
+          },
         },
+
         y: {
           beginAtZero: true,
           grid: { color: "rgba(0,0,0,0.06)" },
@@ -112,9 +177,8 @@ export default function ScrollBarBarChart({
           title: { display: true, text: yLabel },
         },
       },
-    }),
-    [showLegend, yLabel, onBarClick, safeLabels, safeValues]
-  );
+    };
+  }, [showLegend, yLabel, onBarClick, safeLabels, safeValues]);
 
   // วัดความกว้างพื้นที่จริงของการ์ด
   const { ref, w: containerW } = useContainerWidth<HTMLDivElement>();
@@ -126,12 +190,9 @@ export default function ScrollBarBarChart({
   }, [containerW, n, pxPerBar, minWidth]);
 
   return (
-    <div className="rounded-2xl border border-gray-200/60 bg-white shadow-sm">
+    <div className="rounded-2xl border border-gray-200/60 bg-white shadow-sm p-2">
       <div className="px-4 pt-4 pb-2 font-semibold">{title}</div>
-
-      {/* ✅ Outer: fix ตามกล่อง + scrollbar */}
-      <div ref={ref} className="w-full overflow-x-auto px-4 pb-4">
-        {/* ✅ Inner: ความกว้างจริงของกราฟ (ทำให้ล้นแล้วเลื่อนได้) */}
+      <div ref={ref} className="w-full overflow-x-auto px-4 pb-1">
         <div style={{ width: innerWidth, height }}>
           <Bar data={data} options={options} style={{ display: "block" }} />
         </div>

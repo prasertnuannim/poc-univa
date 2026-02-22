@@ -14,7 +14,7 @@ import {
   ChevronRight,
   ChevronsRight,
 } from "lucide-react";
-import { ConfirmDialog } from "./confirmDialog";
+import { ConfirmDialog } from "./ConfirmDialog";
 
 export type SortDir = "asc" | "desc";
 export type SortState<K extends string> = { key: K; dir: SortDir } | null;

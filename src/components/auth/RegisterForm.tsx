@@ -3,9 +3,9 @@
 import { useActionState, useEffect, useRef } from "react";
 import { registerUser } from "@/app/actions/registerForm";
 import { AuthFormState } from "@/types/auth.type";
-import FormInput from "@/components/form/formInput";
-import FormAlert from "@/components/form/formAlert";
-import { SubmitButton } from "@/components/form/submitButton";
+import FormInput from "@/components/form/FormInput";
+import FormAlert from "@/components/form/FormAlert";
+import { SubmitButton } from "@/components/form/SubmitButton";
 
 import {
   Dialog,

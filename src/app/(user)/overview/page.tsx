@@ -32,6 +32,43 @@ export default function DashboardPage() {
   const end = searchParams?.get("end") ?? "";
 
   useEffect(() => {
+  if (mode !== "today") return;
+
+  let active = true;
+
+  const fetchTodayOverview = async () => {
+    try {
+      const form = new FormData();
+      form.set("mode", "today");
+      form.set("date", todayInTimeZone());
+
+      const result = await loadDashboardOverview(null, form);
+
+      if (!active) return;
+      setState(result);
+    } catch {
+      if (!active) return;
+      setState({
+        ...initialState,
+        error: "Failed to refresh today's overview.",
+      });
+    }
+  };
+
+  // โหลดครั้งแรกทันที
+  fetchTodayOverview();
+
+  // ตั้ง auto refresh ทุก 60 วินาที
+  const interval = setInterval(fetchTodayOverview, 60 * 1000);
+
+  return () => {
+    active = false;
+    clearInterval(interval);
+  };
+}, [mode]);
+
+
+  useEffect(() => {
     const controller = new AbortController();
 
     async function fetchOverview() {

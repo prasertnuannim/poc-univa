@@ -3,10 +3,10 @@
 import { Filter, SlidersHorizontal, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import FilterSelect from "./filterSelect";
-import FilterMenu, { FilterRow } from "./filterMenu";
+import FilterSelect from "./FilterSelect";
+import FilterMenu, { FilterRow } from "./FilterMenu";
 import { useState } from "react";
-import FilterCustomize, { ColumnOption } from "./filterCustomize";
+import FilterCustomize, { ColumnOption } from "./FilterCustomize";
 
 type TableToolbarProps = {
   search?: string;

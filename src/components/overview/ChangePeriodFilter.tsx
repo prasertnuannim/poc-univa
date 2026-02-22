@@ -87,7 +87,7 @@ function DateFilterDropdown({
     <div className="w-full rounded-lg border bg-white p-3 text-sm shadow-lg mt-2">
       {/* Header */}
       <div className="mb-3 flex items-center justify-between">
-        <span className="font-medium text-gray-800">Filter by Date</span>
+        <span className="font-medium text-gray-800">Filter by </span>
         <button
           onClick={() => onSelect("today")}
           className="text-xs text-gray-400 hover:text-gray-600"

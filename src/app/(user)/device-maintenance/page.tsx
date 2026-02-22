@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { MoreVertical } from "lucide-react";
 import FilterPanel from "@/components/device-maintenance/filterPanel";
-import Pagination from "@/components/device-maintenance/paginationBar";
+import Pagination from "@/components/device-maintenance/PaginationBar";
 
 /* =====================
    TYPES
