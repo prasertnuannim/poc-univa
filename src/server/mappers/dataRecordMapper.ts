@@ -1,8 +1,8 @@
-
+import type { DataRecordExamEntity } from "@/server/query/dataRecorde.query";
 import type { DataRecordRow } from "@/types/data-records.type";
 import { toThaiDate } from "../utils/date";
 
-export function mapExamToDataRecord(record: any): DataRecordRow {
+export function mapExamToDataRecord(record: DataRecordExamEntity): DataRecordRow {
   const finishedAt = record.finishedAt ?? record.startedAt;
 
   const durationMinutes = Math.max(

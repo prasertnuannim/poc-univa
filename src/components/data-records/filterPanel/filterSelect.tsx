@@ -1,9 +1,10 @@
 "use client";
 
 import * as React from "react";
-import { Calendar, ChevronDown } from "lucide-react";
+import { Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { toDateInputValue } from "@/lib/date";
+import { cn } from "@/lib/utils";
 import {
   Popover,
   PopoverContent,
@@ -12,100 +13,107 @@ import {
 
 type FilterSelectProps = {
   label?: string;
-  onSelectPreset?: (preset: "today" | "week" | "month" | "all") => void;
+  className?: string;
   onApplyRange?: (from: string, to: string) => void;
 };
 
+function formatDisplayDate(dateISO: string) {
+  const date = new Date(`${dateISO}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return dateISO;
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(date);
+}
+
 export default function FilterSelect({
-  label = "TODAY · Nov 25, 2025",
-  onSelectPreset,
+  label = "",
+  className,
   onApplyRange,
 }: FilterSelectProps) {
-  const [from, setFrom] = React.useState("");
-  const [to, setTo] = React.useState("");
+  const [open, setOpen] = React.useState(false);
+  const today = React.useMemo(() => toDateInputValue(new Date()), []);
+  const displayLabel = label || formatDisplayDate(today);
+
+  const recentDayOptions = React.useMemo(() => {
+    const base = new Date();
+    base.setHours(0, 0, 0, 0);
+
+    return Array.from({ length: 30 }, (_, index) => {
+      const date = new Date(base);
+      date.setDate(base.getDate() - index);
+      return {
+        value: toDateInputValue(date),
+        label: new Intl.DateTimeFormat("en-US", {
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+        }).format(date),
+      };
+    });
+  }, []);
+
+  const [selectedRecentDay, setSelectedRecentDay] = React.useState(
+    recentDayOptions[0]?.value ?? today,
+  );
+
+  const handleClear = React.useCallback(() => {
+    setSelectedRecentDay(today);
+    onApplyRange?.(today, today);
+    setOpen(false);
+  }, [onApplyRange, today]);
+
+  const handleRecentDayChange = React.useCallback((value: string) => {
+    setSelectedRecentDay(value);
+    onApplyRange?.(value, value);
+    setOpen(false);
+  }, [onApplyRange]);
 
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
           variant="outline"
           size="sm"
-          className="gap-2 whitespace-nowrap"
+          className={cn("gap-2 whitespace-nowrap", className)}
         >
           <Calendar className="h-4 w-4" />
-          {label}
-          <ChevronDown className="h-4 w-4 opacity-60" />
+          {displayLabel}
         </Button>
       </PopoverTrigger>
 
-      <PopoverContent align="start" className="w-[260px] p-3">
+      <PopoverContent
+        align="start"
+        className="w-[var(--radix-popover-trigger-width)] p-3"
+      >
         <div className="space-y-3">
-          {/* Header */}
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span>Filter by : </span>
-            <button className="hover:underline">Clear</button>
+          <div className="flex justify-end text-xs text-muted-foreground">
+            <button
+              type="button"
+              className="hover:underline"
+              onClick={handleClear}
+            >
+              Clear
+            </button>
           </div>
 
-          {/* Presets */}
-          <div className="grid grid-cols-2 gap-2">
-            <Button
-              size="sm"
-              variant="secondary"
-              onClick={() => onSelectPreset?.("today")}
-            >
-              Today
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => onSelectPreset?.("week")}
-            >
-              This week
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => onSelectPreset?.("month")}
-            >
-              This month
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => onSelectPreset?.("all")}
-            >
-              All Dates
-            </Button>
-          </div>
-
-          {/* Custom range */}
-          <div className="space-y-2">
-            <div className="text-xs text-muted-foreground">
-              Custom Range
-            </div>
-
-            <div className="flex gap-2">
-              <Input
-                type="text"
-                placeholder="mm/dd/yyyy"
-                value={from}
-                onChange={(e) => setFrom(e.target.value)}
-              />
-              <Input
-                type="text"
-                placeholder="mm/dd/yyyy"
-                value={to}
-                onChange={(e) => setTo(e.target.value)}
-              />
-            </div>
-
-            <Button
-              size="sm"
-              className="w-full"
-              onClick={() => onApplyRange?.(from, to)}
-            >
-              Apply
-            </Button>
+          <div className="max-h-64 overflow-auto rounded-md border border-gray-200">
+            {recentDayOptions.map((option) => {
+              const isActive = option.value === selectedRecentDay;
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => handleRecentDayChange(option.value)}
+                  className={`w-full px-3 py-2 text-left text-sm ${
+                    isActive ? "bg-blue-50 text-blue-700" : "hover:bg-gray-50"
+                  }`}
+                >
+                  {option.label}
+                </button>
+              );
+            })}
           </div>
         </div>
       </PopoverContent>

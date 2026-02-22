@@ -9,7 +9,6 @@ import { overviewRateLimitKey } from "@/server/security/dashboardPolicy";
 import { toDashboardOverviewDTOOrNull } from "@/server/mappers/overviewMapper";
 import type { DashboardOverviewDTO } from "@/server/dto/overview.dto";
 
-
 // import { getServerAuthSession } from "@/server/services/auth/sessionService"; // ถ้ามี
 
 export type DashboardOverviewState = {
@@ -26,56 +25,109 @@ export type DashboardOverviewState = {
 
 const limiter = RateLimiter(OVERVIEW_RATE_LIMIT.max, OVERVIEW_RATE_LIMIT.windowSec);
 
-export async function loadDashboardOverview(
-  _prev: unknown,
-  formData: FormData
-): Promise<DashboardOverviewState> {
+const EMPTY_OVERVIEW_FIELDS: Pick<
+  DashboardOverviewState,
+  "volumeSeries" | "typeDonut" | "perUnit" | "maintenanceRows"
+> = {
+  volumeSeries: [],
+  typeDonut: [],
+  perUnit: [],
+  maintenanceRows: [],
+};
+
+function createState(
+  raw: OverviewInput,
+  overrides: Partial<DashboardOverviewState>,
+): DashboardOverviewState {
+  return {
+    data: null,
+    ...EMPTY_OVERVIEW_FIELDS,
+    loaded: false,
+    errors: {},
+    values: raw,
+    error: null,
+    ...overrides,
+  };
+}
+
+function parseFormToOverviewInput(formData: FormData): OverviewInput {
   const rawMode = (formData.get("mode") ?? "today") as string;
   const normalizedMode = rawMode === "range" ? "custom" : rawMode;
 
-  const raw: OverviewInput = {
+  return {
     mode: normalizedMode as OverviewInput["mode"],
     date: formData.get("date") ? String(formData.get("date")) : undefined,
     start: formData.get("start") ? String(formData.get("start")) : undefined,
     end: formData.get("end") ? String(formData.get("end")) : undefined,
     granularity: (formData.get("granularity") ?? "day") as OverviewInput["granularity"],
   };
+}
+
+function toValidationErrors(raw: OverviewInput): Record<string, string> {
+  const parsed = overviewSchema.safeParse(raw);
+  if (parsed.success) return {};
+
+  const errors: Record<string, string> = {};
+  for (const issue of parsed.error.errors) {
+    errors[String(issue.path[0] ?? "general")] = issue.message;
+  }
+  return errors;
+}
+
+async function executeOverviewUseCase(input: OverviewInput): Promise<DashboardOverviewDTO | null> {
+  // const session = await getServerAuthSession();
+  // await limiter.check(overviewRateLimitKey(session?.user?.id));
+  await limiter.check(overviewRateLimitKey(null));
+
+  const filter = buildFilterFromInput(input);
+  const rawData = await fetchOverviewRaw({
+    filter,
+    granularity: input.granularity,
+    maintenanceLimit: 5,
+  });
+  return toDashboardOverviewDTOOrNull(rawData);
+}
+
+export async function loadDashboardOverview(
+  _prev: unknown,
+  formData: FormData,
+): Promise<DashboardOverviewState> {
+  const raw = parseFormToOverviewInput(formData);
 
   try {
-    const parsed = overviewSchema.safeParse(raw);
-    if (!parsed.success) {
-      const errors: Record<string, string> = {};
-      parsed.error.errors.forEach((e) => (errors[String(e.path[0] ?? "general")] = e.message));
-      return { data: null, volumeSeries: [], typeDonut: [], perUnit: [], maintenanceRows: [], loaded: false, errors, values: raw, error: null };
+    const errors = toValidationErrors(raw);
+    if (Object.keys(errors).length > 0) {
+      return createState(raw, { errors });
     }
 
-    // const session = await getServerAuthSession();
-    // await limiter.check(overviewRateLimitKey(session?.user?.id));
-    await limiter.check(overviewRateLimitKey(null));
-
-    const filter = buildFilterFromInput(parsed.data);
-    const rawData = await fetchOverviewRaw({
-      filter,
-      granularity: parsed.data.granularity,
-      maintenanceLimit: 5,
-    });
-
-    const dto = toDashboardOverviewDTOOrNull(rawData);
+    const dto = await executeOverviewUseCase(raw);
     const safeDto = dto ?? {
-      volumeSeries: [],
-      typeDonut: [],
-      perUnit: [],
-      maintenanceRows: [],
+      ...EMPTY_OVERVIEW_FIELDS,
     };
 
-    return { data: dto, ...safeDto, loaded: true, errors: {}, values: raw, error: null };
+    return createState(raw, {
+      data: dto,
+      ...safeDto,
+      loaded: true,
+      errors: {},
+    });
   } catch (err) {
     if (err instanceof Error && err.message === "Too many requests") {
-      return { data: null, volumeSeries: [], typeDonut: [], perUnit: [], maintenanceRows: [], loaded: false, errors: { general: "Too many requests. Please try again later." }, values: raw, error: null };
+      return createState(raw, {
+        errors: { general: "Too many requests. Please try again later." },
+      });
     }
+
     if (isAppError(err)) {
-      return { data: null, volumeSeries: [], typeDonut: [], perUnit: [], maintenanceRows: [], loaded: false, errors: { general: err.message }, values: raw, error: err.message };
+      return createState(raw, {
+        errors: { general: err.message },
+        error: err.message,
+      });
     }
-    return { data: null, volumeSeries: [], typeDonut: [], perUnit: [], maintenanceRows: [], loaded: false, errors: { general: "Failed to load overview." }, values: raw, error: "Failed to load overview." };
+
+    return createState(raw, {
+      errors: { general: "Failed to load overview." },
+      error: "Failed to load overview.",
+    });
   }
 }

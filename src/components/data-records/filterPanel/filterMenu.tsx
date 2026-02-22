@@ -66,13 +66,13 @@ export default function FilterMenu({
               <SelectTrigger>
                 <SelectValue placeholder="Column" />
               </SelectTrigger>
-              <SelectContent>
+              {/* <SelectContent>
                 <SelectItem value="device">Device</SelectItem>
                 <SelectItem value="unit">Unit</SelectItem>
                 <SelectItem value="examType">Exam Type</SelectItem>
                 <SelectItem value="operator">Operator</SelectItem>
                 <SelectItem value="physician">Physician</SelectItem>
-              </SelectContent>
+              </SelectContent> */}
             </Select>
 
             {/* Operator */}

@@ -1,27 +1,18 @@
-import { findRecordeData, countExams } from "../query/dataRecorde.query";
+import {
+  findRecordeDataPage,
+  type DataRecordsQueryOptions,
+} from "../query/dataRecorde.query";
 import { mapExamToDataRecord } from "../mappers/dataRecordMapper";
 import type { DataRecordRow } from "@/types/data-records.type";
 
-type Options = {
-  skip: number;
-  limit: number;
-  q?: string;
-  date?: string;
-  departmentId?: string;
-  deviceId?: string;
-};
-
-export async function getDataRecords(options: Options): Promise<{
+export async function getDataRecords(options: DataRecordsQueryOptions): Promise<{
   data: DataRecordRow[];
   total: number;
 }> {
-  const [data, total] = await Promise.all([
-    findRecordeData(options),
-    countExams(options),
-  ]);
-console.log("Data Records:", data);
+  const { rows, total } = await findRecordeDataPage(options);
+
   return {
-    data: data.map(mapExamToDataRecord),
+    data: rows.map(mapExamToDataRecord),
     total,
   };
 }

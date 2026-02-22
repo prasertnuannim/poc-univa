@@ -4,9 +4,11 @@ import Pagination from "@/components/data-records/PaginationBar";
 import * as React from "react";
 import type { DataRecordRow } from "@/types/data-records.type";
 import { getDataRecordsAction } from "./action";
+import { todayInTimeZone } from "@/lib/date";
 
 type FilterState = {
   q: string;
+  date: string;
   datePreset: "today" | "last7" | "last30" | "custom";
   devices: string[];
   units: string[];
@@ -17,6 +19,7 @@ type FilterState = {
 
 const initial: FilterState = {
   q: "",
+  date: todayInTimeZone(),
   datePreset: "today",
   devices: [],
   units: [],
@@ -39,7 +42,18 @@ const allColumns = [
 type Column = (typeof allColumns)[number];
 type ColumnKey = (typeof allColumns)[number]["key"];
 
-const PAGE_SIZE = 10;
+const LIMIT_OPTIONS = [10, 25, 50] as const;
+
+function formatDateLabel(dateISO: string) {
+  const parsed = new Date(`${dateISO}T00:00:00`);
+  if (Number.isNaN(parsed.getTime())) return "Invalid date";
+  const label = new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(parsed);
+  return label;
+}
 
 function exportToCsv(rows: DataRecordRow[], columns: readonly Column[]) {
   const header = columns.map((c) => c.label).join(",");
@@ -72,13 +86,13 @@ export default function Page() {
   const [isLoading, setIsLoading] = React.useState(true);
   const [loadError, setLoadError] = React.useState<string | null>(null);
   const [page, setPage] = React.useState(1);
+  const [limit, setLimit] = React.useState<number>(LIMIT_OPTIONS[0]);
   const [serverTotal, setServerTotal] = React.useState(0);
-
 
   // รีเซ็ตหน้าทุกครั้งที่ filter เปลี่ยน (กันหลุดหน้า)
   React.useEffect(() => {
     setPage(1);
-  }, [filter]);
+  }, [filter.q, filter.date, limit]);
 
   React.useEffect(() => {
     let active = true;
@@ -88,8 +102,9 @@ export default function Page() {
 
     getDataRecordsAction({
       page,
-      pageSize: PAGE_SIZE,
+      pageSize: limit,
       q: filter.q,
+      date: filter.date,
     })
       .then((res) => {
         if (!active) return;
@@ -108,57 +123,18 @@ export default function Page() {
     return () => {
       active = false;
     };
-  }, [page, filter.q]);
-
+  }, [page, filter.q, filter.date, limit]);
 
   const visibleCols = allColumns.filter((c) => selectedCols.includes(c.key));
+  const totalPages = Math.max(1, Math.ceil(serverTotal / limit));
+  const rangeStart = serverTotal === 0 ? 0 : (page - 1) * limit + 1;
+  const rangeEnd = serverTotal === 0 ? 0 : Math.min(page * limit, serverTotal);
 
-  // (ตัวอย่าง) filter rows แบบง่าย ๆ
-  const filteredRows = React.useMemo(() => {
-    const q = filter.q.trim().toLowerCase();
-
-    return rows.filter((r) => {
-      const matchQ =
-        !q ||
-        [r.device, r.unit, r.examType, r.operator, r.physician]
-          .join(" ")
-          .toLowerCase()
-          .includes(q);
-
-      const matchDevices =
-        filter.devices.length === 0 || filter.devices.includes(r.device);
-      const matchUnits =
-        filter.units.length === 0 || filter.units.includes(r.unit);
-      const matchTypes =
-        filter.examTypes.length === 0 || filter.examTypes.includes(r.examType);
-      const matchOperators =
-        filter.operators.length === 0 || filter.operators.includes(r.operator);
-      const matchPhysicians =
-        filter.physicians.length === 0 || filter.physicians.includes(r.physician);
-
-      // date preset: demo only (ไม่ทำ logic ลึก)
-      const matchDate = true;
-
-      return (
-        matchQ &&
-        matchDevices &&
-        matchUnits &&
-        matchTypes &&
-        matchOperators &&
-        matchPhysicians &&
-        matchDate
-      );
-    });
-  }, [filter, rows]);
-
-  const totalRows = filteredRows.length;
-  const totalPages = Math.max(1, Math.ceil(totalRows / PAGE_SIZE));
-  const safePage = Math.min(page, totalPages);
-
-  const pagedRows = React.useMemo(() => {
-    const start = (safePage - 1) * PAGE_SIZE;
-    return filteredRows.slice(start, start + PAGE_SIZE);
-  }, [filteredRows, safePage]);
+  React.useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [page, totalPages]);
 
 
   return (
@@ -166,17 +142,17 @@ export default function Page() {
       <FilterPanel
         search={filter.q}
         onSearchChange={(q) => setFilter((prev) => ({ ...prev, q }))}
-        dateLabel="TODAY · Nov 25, 2025"
-        onDateClick={() => { }}
+        dateLabel={formatDateLabel(filter.date)}
+        onDateChange={(dateISO) => setFilter((prev) => ({ ...prev, date: dateISO }))}
         onFilterClick={() => { }}
         onCustomizeClick={() => { }}
-        onExportClick={() => exportToCsv(filteredRows, visibleCols)}
+        onExportClick={() => exportToCsv(rows, visibleCols)}
       />
 
 
       <div className="mt-6 rounded-2xl border border-gray-200/60 bg-white p-4">
         <div className="mb-3 text-sm font-semibold text-gray-900">
-          Preview Rows ({filteredRows.length})
+          Preview Rows ({rangeStart}-{rangeEnd} of {serverTotal})
         </div>
 
         <div className="overflow-auto">
@@ -213,7 +189,7 @@ export default function Page() {
               )}
               {!isLoading &&
                 !loadError &&
-                pagedRows.map((r) => (
+                rows.map((r) => (
                   <tr key={r.id} className="text-sm text-gray-800 hover:bg-gray-50">
                     {visibleCols.map((c) => (
                       <td key={c.key} className="border-b border-gray-100 px-3 py-2">
@@ -222,7 +198,7 @@ export default function Page() {
                     ))}
                   </tr>
                 ))}
-              {!isLoading && !loadError && pagedRows.length === 0 && (
+              {!isLoading && !loadError && rows.length === 0 && (
                 <tr>
                   <td
                     colSpan={visibleCols.length}
@@ -238,12 +214,29 @@ export default function Page() {
 
       </div>
       <div className="mt-4">
-        <Pagination
-          page={page}
-          pageSize={PAGE_SIZE}
-          total={serverTotal}
-          onPageChange={setPage}
-        />
+        <div className="flex items-center justify-between gap-3">
+          <label className="flex items-center gap-2 text-sm text-gray-600">
+            Limit
+            <select
+              value={limit}
+              onChange={(e) => setLimit(Number(e.target.value))}
+              className="h-8 rounded-md border border-gray-200 px-2 text-sm text-gray-700"
+            >
+              {LIMIT_OPTIONS.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <Pagination
+            page={page}
+            pageSize={limit}
+            total={serverTotal}
+            onPageChange={setPage}
+          />
+        </div>
 
       </div>
     </div>

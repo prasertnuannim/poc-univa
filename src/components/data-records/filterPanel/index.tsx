@@ -13,7 +13,7 @@ type TableToolbarProps = {
   onSearchChange?: (v: string) => void;
 
   dateLabel?: string;
-  onDateClick?: () => void;
+  onDateChange?: (dateISO: string) => void;
 
   onFilterClick?: () => void;
   onCustomizeClick?: () => void;
@@ -23,8 +23,8 @@ type TableToolbarProps = {
 export default function FilterPanel({
   search,
   onSearchChange,
-  dateLabel = "TODAY · Nov 25, 2025",
-  onDateClick,
+  dateLabel = "Nov 25, 2025",
+  onDateChange,
   onFilterClick,
   onCustomizeClick,
   onExportClick,
@@ -64,14 +64,12 @@ export default function FilterPanel({
       {/* Date select */}
       <FilterSelect
         label={dateLabel}
-        onSelectPreset={(p) => {
-          onDateClick?.();
-          console.log("preset:", p);
-        }}
         onApplyRange={(from, to) => {
-          onDateClick?.();
-          console.log("range:", from, to);
+          const selectedDate = from || to;
+          if (!selectedDate) return;
+          onDateChange?.(selectedDate);
         }}
+        className="w-[170px] justify-start"
       />
 
       {/* Filter */}
