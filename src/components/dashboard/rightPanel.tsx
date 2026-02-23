@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import HorizontalBarChart from "./HorizontalBarChart";
+import HorizontalBarChart from "./horizontalBarChart";
 
 type TabKey =
   | "devices"

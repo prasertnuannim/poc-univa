@@ -32,6 +32,7 @@ export default function ExamsTypeDonut({
     name: d.name,
     value: Number.isFinite(d.value) ? d.value : 0,
   }));
+  const hasData = safeData.length > 0 && safeData.some((d) => d.value > 0);
 
   const total = safeData.reduce((s, d) => s + d.value, 0);
   const percentText = (value: number) =>
@@ -72,51 +73,54 @@ export default function ExamsTypeDonut({
     <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
       <h3 className="mb-3 text-sm font-semibold text-gray-800">{title}</h3>
 
-      {/* แบ่งครึ่งซ้าย/ขวา */}
-      <div className="grid grid-cols-2 gap-6">
-        {/* Left 50%: Donut */}
-        <div className="min-w-0">
-          <div className="h-60 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={safeData}
-                  dataKey="value"
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={55}
-                  outerRadius={78}
-                  stroke="transparent"
-                  labelLine={false}
-                  label={renderLabel}
-                  isAnimationActive={false}
-                >
-                  {safeData.map((_, i) => (
-                    <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                  ))}
-                </Pie>
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
+      {!hasData ? (
+        <div className="flex h-60 items-center justify-center text-sm text-gray-400">
+          No Data
         </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-6">
+          <div className="min-w-0">
+            <div className="h-60 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={safeData}
+                    dataKey="value"
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={55}
+                    outerRadius={78}
+                    stroke="transparent"
+                    labelLine={false}
+                    label={renderLabel}
+                    isAnimationActive={false}
+                  >
+                    {safeData.map((_, i) => (
+                      <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                    ))}
+                  </Pie>
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
 
-        {/* Right 50%: Devices (2 columns) */}
-        <div className="min-w-0">
-          <div className="grid grid-cols-2 gap-x-8 gap-y-3">
-            {safeData.map((d, i) => (
-              <div key={d.name} className="flex min-w-0 items-center gap-2">
-                <span
-                  className="h-3 w-3 shrink-0 rounded-full"
-                  style={{ backgroundColor: COLORS[i % COLORS.length] }}
-                />
-                <span className="min-w-0 truncate text-xs text-gray-700">
-                  {d.name}
-                </span>
-              </div>
-            ))}
+          <div className="min-w-0">
+            <div className="grid grid-cols-2 gap-x-8 gap-y-3">
+              {safeData.map((d, i) => (
+                <div key={d.name} className="flex min-w-0 items-center gap-2">
+                  <span
+                    className="h-3 w-3 shrink-0 rounded-full"
+                    style={{ backgroundColor: COLORS[i % COLORS.length] }}
+                  />
+                  <span className="min-w-0 truncate text-xs text-gray-700">
+                    {d.name}
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

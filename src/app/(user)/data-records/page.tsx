@@ -1,6 +1,6 @@
 "use client";
 import FilterPanel from "@/components/data-records/filterPanel";
-import Pagination from "@/components/data-records/PaginationBar";
+import Pagination from "@/components/data-records/paginationBar";
 import * as React from "react";
 import type { DataRecordRow } from "@/types/data-records.type";
 import { getDataRecordsAction } from "./action";
@@ -89,17 +89,14 @@ export default function Page() {
   const [limit, setLimit] = React.useState<number>(LIMIT_OPTIONS[0]);
   const [serverTotal, setServerTotal] = React.useState(0);
 
-  // รีเซ็ตหน้าทุกครั้งที่ filter เปลี่ยน (กันหลุดหน้า)
   React.useEffect(() => {
     setPage(1);
   }, [filter.q, filter.date, limit]);
 
   React.useEffect(() => {
     let active = true;
-
     setIsLoading(true);
     setLoadError(null);
-
     getDataRecordsAction({
       page,
       pageSize: limit,
@@ -119,7 +116,6 @@ export default function Page() {
         if (!active) return;
         setIsLoading(false);
       });
-
     return () => {
       active = false;
     };
@@ -136,7 +132,6 @@ export default function Page() {
     }
   }, [page, totalPages]);
 
-
   return (
     <div className="p-6">
       <FilterPanel
@@ -148,13 +143,10 @@ export default function Page() {
         onCustomizeClick={() => { }}
         onExportClick={() => exportToCsv(rows, visibleCols)}
       />
-
-
       <div className="mt-6 rounded-2xl border border-gray-200/60 bg-white p-4">
         <div className="mb-3 text-sm font-semibold text-gray-900">
           Preview Rows ({rangeStart}-{rangeEnd} of {serverTotal})
         </div>
-
         <div className="overflow-auto">
           <table className="min-w-[900px] w-full border-separate border-spacing-0">
             <thead>
@@ -211,10 +203,9 @@ export default function Page() {
             </tbody>
           </table>
         </div>
-
       </div>
       <div className="mt-4">
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center justify-end gap-3">
           <label className="flex items-center gap-2 text-sm text-gray-600">
             Limit
             <select
@@ -229,7 +220,6 @@ export default function Page() {
               ))}
             </select>
           </label>
-
           <Pagination
             page={page}
             pageSize={limit}

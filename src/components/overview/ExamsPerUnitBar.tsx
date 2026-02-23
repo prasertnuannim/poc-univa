@@ -22,6 +22,7 @@ export default function ExamsPerUnitBar({ data, mode }: ExamsPerUnitBarProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const labels = useMemo(() => data.map((d) => d.unit), [data]);
   const values = useMemo(() => data.map((d) => d.value), [data]);
+  const hasData = values.length > 0 && values.some((v) => v > 0);
   const enableScroll = labels.length > 10;
 
   useEffect(() => {
@@ -125,14 +126,20 @@ export default function ExamsPerUnitBar({ data, mode }: ExamsPerUnitBarProps) {
         Exams volume per unit
       </h3>
 
-      <div
-        ref={scrollRef}
-        className={enableScroll ? "overflow-x-auto scrollbar-hide" : "overflow-x-hidden"}
-      >
-        <div className="h-[260px]" style={{ minWidth }}>
-          <Bar data={chartData} options={options} />
+      {!hasData ? (
+        <div className="flex h-[260px] items-center justify-center text-sm text-gray-400">
+          No Data
         </div>
-      </div>
+      ) : (
+        <div
+          ref={scrollRef}
+          className={enableScroll ? "overflow-x-auto scrollbar-hide" : "overflow-x-hidden"}
+        >
+          <div className="h-[260px]" style={{ minWidth }}>
+            <Bar data={chartData} options={options} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

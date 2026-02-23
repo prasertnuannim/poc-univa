@@ -33,6 +33,7 @@ type ExamsVolumeLineProps = {
 
 export default function ExamsVolumeLine({ data, mode }: ExamsVolumeLineProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const hasData = data.length > 0 && data.some((d) => d.value > 0);
 
   const chartLabels = useMemo(
     () => data.map((d) => toThaiHourLabel(d.label)),
@@ -144,11 +145,17 @@ export default function ExamsVolumeLine({ data, mode }: ExamsVolumeLineProps) {
     <div className="rounded-xl bg-white p-5 border shadow-sm">
       <h3 className="mb-4 text-sm font-semibold text-gray-700">Exams volume</h3>
 
-      <div ref={scrollRef} className="overflow-x-auto scrollbar-hide">
-        <div className="min-w-[1200px] h-[280px]">
-          <Line data={chartData} options={options} />
+      {!hasData ? (
+        <div className="flex h-[280px] items-center justify-center text-sm text-gray-400">
+          No Data
         </div>
-      </div>
+      ) : (
+        <div ref={scrollRef} className="overflow-x-auto scrollbar-hide">
+          <div className="min-w-[1200px] h-[280px]">
+            <Line data={chartData} options={options} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

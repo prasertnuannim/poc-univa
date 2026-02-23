@@ -24,7 +24,7 @@ export default function DashboardOverview({
   const totalExams = volumeSeries.reduce((sum, row) => sum + row.value, 0);
 
   return (
-    <div className="flex flex-col space-y-6">
+    <div className="flex flex-col space-y-2">
       {/* Top stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <StatCard

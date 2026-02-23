@@ -111,12 +111,12 @@ export default function ToggleLayout({ sidebar, title, children }: Props) {
       {sidebar}
       <div className="flex flex-1 flex-col overflow-hidden">
         <div className="flex justify-between">
-          <header className="flex h-14 items-center justify-between bg-white px-4">
+          <header className="flex h-14 items-center justify-between bg-white px-1">
             <div className="flex items-center gap-3">
               <TooltipButton
                 label="Toggle sidebar"
                 onClick={toggle}
-                className="rounded-md p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-500 cursor-pointer"
+                className="rounded-md text-gray-400 hover:bg-gray-100 hover:text-gray-500 cursor-pointer"
               >
                 {open ? <ChevronLeft size={20} /> : <ChevronRight size={20} />}
               </TooltipButton>
@@ -145,7 +145,7 @@ export default function ToggleLayout({ sidebar, title, children }: Props) {
                   exit={{ opacity: 0, y: -4 }}
                   transition={{ duration: 0.15 }}
                   className="
-                    sticky top-14 z-10
+                    sticky top-10 z-10
                     mx-4 mt-3
                     flex items-center justify-between
                     rounded-2xl border border-gray-200/70
@@ -158,7 +158,7 @@ export default function ToggleLayout({ sidebar, title, children }: Props) {
                     <button
                       onClick={handleResetToday}
                       className={`
-                        rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide transition cursor-pointer
+                        rounded-md px-2  py-1 text-xs font-semibold uppercase tracking-wide transition cursor-pointer
                         ${isToday
                           ? "bg-linear-to-r from-orange-500 to-red-500 text-white shadow"
                           : "bg-gray-100 text-gray-600 hover:bg-orange-100 hover:text-orange-600"

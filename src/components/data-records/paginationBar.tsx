@@ -40,7 +40,6 @@ function buildPageTokens(page: number, totalPages: number): PageToken[] {
     }
     tokens.push(current);
   }
-
   return tokens;
 }
 

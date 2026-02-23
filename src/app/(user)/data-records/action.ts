@@ -11,7 +11,6 @@ function parseDataRecordQuery(params: DataRecordsActionParams | undefined): Data
   const parsed = dataRecordsActionParamsSchema.safeParse(params ?? {});
   if (parsed.success) return parsed.data;
 
-  // fallback ให้ query ทำงานต่อได้แม้รับ payload ผิดรูปแบบ
   return dataRecordsActionParamsSchema.parse({});
 }
 

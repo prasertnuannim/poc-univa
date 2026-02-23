@@ -37,7 +37,6 @@ export default function HorizontalBarChart({
 }: HorizontalBarChartProps) {
   const rowHeight = 47;
   const maxRows = 10;
-
   const calculatedHeight = labels.length * rowHeight;
   const defaultMaxHeight = maxRows * rowHeight;
   const containerHeight = Math.min(
@@ -47,7 +46,6 @@ export default function HorizontalBarChart({
 
   const data = React.useMemo(() => {
     const max = Math.max(...values, 1);
-
     return {
       labels,
       datasets: [
@@ -65,7 +63,7 @@ export default function HorizontalBarChart({
       ],
     };
   }, [labels, values]);
-
+const maxValue = Math.max(...values, 1);
   const options = React.useMemo<ChartOptions<"bar">>(
     () => ({
       responsive: true,
@@ -94,6 +92,7 @@ export default function HorizontalBarChart({
         x: {
            position: "top",
           beginAtZero: true,
+           max: Math.ceil(maxValue * 1.15),
           grid: { color: "rgba(0,0,0,0.06)" },
           border: { display: false },
           ticks: { precision: 0 },

@@ -2,10 +2,10 @@
 
 import { useActionState, useState } from "react";
 import { redirect } from "next/navigation";
-import { SubmitButton } from "@/components/form/SubmitButton";
-import FormInput from "@/components/form/FormInput";
+import { SubmitButton } from "@/components/form/submitButton";
+import FormInput from "@/components/form/formInput";
 import { LoginFormState } from "@/types/auth.type";
-import FormAlert from "@/components/form/FormAlert";
+import FormAlert from "@/components/form/formAlert";
 import { loginUser } from "./action";
 import RegisterModal from "../../../components/auth/RegisterForm";
 
