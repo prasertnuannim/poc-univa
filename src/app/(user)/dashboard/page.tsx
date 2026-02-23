@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import ScrollBarBarChart from "@/components/dashboard/ScrollBarBarChart";
-import RightPanel from "@/components/dashboard/RightPanel";
+import RightPanel from "@/components/dashboard/rightPanel";
 import {
   DashboardToolbar,
   DateFilter,

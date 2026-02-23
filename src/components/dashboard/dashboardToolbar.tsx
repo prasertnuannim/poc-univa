@@ -241,9 +241,7 @@ export function DashboardToolbar({
                       onChange({ mode: "week", date: new Date() });
                       setOpen(false);
                     }}
-                  >
-                    
-                    
+                  > 
                     week
                   </Button>
                   <Button
@@ -270,7 +268,6 @@ export function DashboardToolbar({
                   </Button>
                 </div>
               </div>
-
               <div className="h-px bg-gray-200" />
 
               <div className="space-y-2">
