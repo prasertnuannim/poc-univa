@@ -14,7 +14,7 @@ export default function RecentMaintenanceTable({
       </h3>
 
       {!hasData ? (
-        <div className="flex h-[140px] items-center justify-center text-sm text-gray-400">
+        <div className="flex h-60 items-center justify-center text-sm text-gray-400">
           No Data
         </div>
       ) : (

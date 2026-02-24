@@ -146,7 +146,7 @@ export default function ExamsVolumeLine({ data, mode }: ExamsVolumeLineProps) {
       <h3 className="mb-4 text-sm font-semibold text-gray-700">Exams volume</h3>
 
       {!hasData ? (
-        <div className="flex h-[280px] items-center justify-center text-sm text-gray-400">
+        <div className="flex h-60 items-center justify-center text-sm text-gray-400">
           No Data
         </div>
       ) : (
